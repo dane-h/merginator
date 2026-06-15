@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GrindRail</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg: #0d0d14;
+      --card: #13131e;
+      --card-border: #22223a;
+      --card-border-hover: #35355a;
+      --amber: #f59e0b;
+      --amber-glow: rgba(245,158,11,0.3);
+      --muted: #6b7280;
+      --text: #e2e8f0;
+      --text-dim: #4b5563;
+    }
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      min-height: 100vh;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 1.25rem;
+      transition: border-color 0.15s;
+    }
+    .card:hover { border-color: var(--card-border-hover); }
+    .card.ci-active { border-color: #7f1d1d; background: #110808; }
+
+    /* Progress dots */
+    .dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    .dot-done  { background: var(--amber); }
+    .dot-now   { background: var(--amber); box-shadow: 0 0 0 3px var(--amber-glow); animation: pulse 2s infinite; }
+    .dot-ci    { background: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.3); }
+    .dot-todo  { background: #1e1e30; border: 1px solid #2e2e45; }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 3px var(--amber-glow); } 50% { box-shadow: 0 0 0 5px var(--amber-glow); } }
+
+    /* Buttons */
+    .btn { border: none; cursor: pointer; font-size: 0.85rem; font-weight: 500; border-radius: 0.65rem; padding: 0.45rem 0.9rem; transition: all 0.12s; }
+    .btn-amber { background: var(--amber); color: #000; font-weight: 600; }
+    .btn-amber:hover { background: #fbbf24; }
+    .btn-dim { background: #1e1e30; color: var(--text); }
+    .btn-dim:hover { background: #28283e; }
+    .btn-ghost { background: transparent; color: var(--muted); padding: 0.35rem 0.6rem; border-radius: 0.5rem; }
+    .btn-ghost:hover { color: var(--text); background: #1a1a28; }
+    .btn-danger { background: #3b0606; color: #fca5a5; }
+    .btn-danger:hover { background: #5b0c0c; }
+    .btn-green { background: #052e16; color: #86efac; }
+    .btn-green:hover { background: #14532d; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Inputs */
+    .inp {
+      background: #0a0a12;
+      border: 1px solid #22223a;
+      border-radius: 0.6rem;
+      color: var(--text);
+      padding: 0.55rem 0.8rem;
+      font-size: 0.875rem;
+      width: 100%;
+      transition: border-color 0.12s;
+    }
+    .inp:focus { outline: none; border-color: var(--amber); }
+    textarea.inp { resize: vertical; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(4px);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .modal-box {
+      background: #16162a;
+      border: 1px solid #2a2a45;
+      border-radius: 1.25rem;
+      padding: 1.5rem;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    /* Step description tooltip */
+    .step-desc {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* CI block */
+    .ci-block {
+      background: #1c0a0a;
+      border: 1px solid #7f1d1d;
+      border-radius: 0.75rem;
+      padding: 0.75rem;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 1.5rem; right: 1.5rem;
+      background: #1e1e30;
+      border: 1px solid #2a2a45;
+      color: var(--text);
+      padding: 0.6rem 1rem;
+      border-radius: 0.75rem;
+      font-size: 0.85rem;
+      z-index: 100;
+      animation: fadein 0.15s ease;
+    }
+    .toast.err { background: #1c0a0a; border-color: #7f1d1d; color: #fca5a5; }
+    @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    /* Pill */
+    .pill { display: inline-flex; align-items: center; font-size: 0.7rem; padding: 0.1rem 0.5rem; border-radius: 9999px; }
+    .pill-red { background: #3b0606; color: #fca5a5; }
+    .pill-amber { background: #451a00; color: #fcd34d; }
+
+    label { font-size: 0.78rem; color: var(--muted); display: block; margin-bottom: 0.3rem; }
+    h2 { font-size: 1.05rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 1.25rem; }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#4b5563">Loading...</div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// PROMPTS
+// ─────────────────────────────────────────────
+const FOUR_ANGLE = `@claude Review this pull request from four distinct angles. You are running on GitHub so you cannot spin up sub-agents — instead, work through each angle yourself in turn and report findings separately.
+
+First, performance: identify inefficient algorithms, unnecessary re-renders, N+1 queries, missing indexes, unoptimised loops, memory leaks, and any changes that could degrade response times or throughput under load.
+
+Second, security: check for injection vulnerabilities, authentication and authorisation gaps, insecure data handling, exposure of sensitive information, OWASP Top 10 risks, and any changes that weaken the existing security posture.
+
+Third, correctness: identify logic bugs, edge cases, off-by-one errors, race conditions, null or undefined handling, unhandled promise rejections, incorrect boolean logic, and any assumptions that could break under unexpected input.
+
+Fourth, test coverage: identify any changed or added code paths that lack tests, flag missing unit tests for new logic, missing integration tests for service interactions, missing API tests for endpoint changes, and missing E2E tests for user-facing workflow changes. Also flag missing coverage for valid unhappy paths — error states and failure scenarios that end users can realistically reach; do not flag theoretical paths that cannot occur in practice. Suggest specific tests to write and which test files or patterns to follow.
+
+For each angle, report findings with severity, affected file and line, and a recommended fix.`;
+
+const prompts = {
+  step1: (t) => `fix ${t.linearIssue || 'ISSUE_ID'}`,
+  step3: (t) => `${t.prUrl}\n\nRespond to each review comment on this pull request. For each comment, first determine whether it is valid — is it based in fact and evidence, not assumption? If it is valid, make the necessary code change and respond explaining what was fixed. If it is invalid, respond explaining why it is incorrect and provide concrete evidence. Never accept a review comment at face value — verify every claim before responding. Any valid comments must be addressed with a code change and a response explaining the fix. Any invalid comments must be addressed with a response explaining why the comment is incorrect, supported by concrete evidence.\n\nOnce all comments are addressed, verify that every reply accurately reflects the current state of the code. Flag any discrepancy where a reply claims a fix was made but the code does not match.`,
+  step4: (t) => `${t.prUrl}\n\nReview the current PR description against the actual diff. Update the description to accurately reflect what the PR does now, incorporating any changes made since it was first opened. Keep the same tone and format — just make sure the content is accurate.`,
+  step7: (t, reviewer, feedback) => `${t.prUrl}\n\n${reviewer} left a comment / said on a call that ${feedback}. Can you look into what they're referring to and address it?`,
+  step8: (t) => `${t.prUrl}\n\nRun a final check on this PR:\n- Confirm all conversations are resolved\n- Confirm all commits are pushed to the branch\n- Check the status of all CI checks and flag any that are failing or pending`,
+  ci:    (t) => `${t.prUrl}\n\nThe CI checks are failing. Investigate the failing checks, identify the root cause, fix the issues, and push the changes.`,
+};
+
+// ─────────────────────────────────────────────
+// STEP DEFINITIONS
+// ─────────────────────────────────────────────
+const STEPS = [
+  { id: 1, name: 'Implement Fix',          short: 'Implement',   action: 'copy',        doneLabel: 'PR is Open', confirmPR: true,
+    desc: 'Run the bug-fix skill in Claude Code with the Linear issue ID.' },
+  { id: 2, name: 'Trigger AI Review',      short: 'AI Review',   action: 'post_github', doneLabel: 'Mark Done',
+    desc: 'Post the four-angle review comment. Wait for Claude bot and Aikido before proceeding.' },
+  { id: 3, name: 'Address Comments',       short: 'Address',     action: 'copy',        doneLabel: 'Mark Done',
+    desc: 'Address all review comments. Claude will also verify replies match the code.' },
+  { id: 4, name: 'Update PR Description',  short: 'Update Desc', action: 'copy',        doneLabel: 'Mark Done',
+    desc: 'Bring the PR description in line with any changes made since it was opened.' },
+  { id: 5, name: 'Evidence → Linear',      short: 'Linear',      action: 'open_linear', doneLabel: 'Mark Done',
+    desc: 'Open the Linear issue and paste the PR link as evidence.' },
+  { id: 6, name: 'Request Senior Review',  short: 'Sr. Review',  action: 'open_pr',     doneLabel: 'Mark Done', branch: true,
+    desc: 'Assign the relevant senior engineer as a reviewer on GitHub. After requesting, wait ~2 min and check Aikido — it triggers on review request, not on push.' },
+  { id: 7, name: 'Senior Feedback',        short: 'Sr. Feedback',action: 'input_copy',  doneLabel: '→ Final Gate', loopable: true,
+    desc: 'Describe the feedback and Claude will address it. Can loop.' },
+  { id: 8, name: 'Final Gate',             short: 'Final Gate',  action: 'copy',        doneLabel: '🚀 Merge',  isFinal: true,
+    desc: 'Confirm all conversations resolved, CI green, reviewer approved.' },
+];
+
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+let tracks = [];
+let cfg = { githubToken: '', linearWorkspace: '' };
+let modalState = null;
+
+// ─────────────────────────────────────────────
+// API
+// ─────────────────────────────────────────────
+const api = {
+  async get(path) {
+    const r = await fetch(path);
+    return r.json();
+  },
+  async post(path, body) {
+    const r = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return r.json();
+  },
+  save()   { return this.post('/api/state', { tracks }); },
+  saveCfg(){ return this.post('/api/config', cfg); },
+  fetchPR(url)    { return this.get(`/api/github/pr?url=${encodeURIComponent(url)}`); },
+  detect(url)     { return this.get(`/api/github/detect?url=${encodeURIComponent(url)}`); },
+  comment(url, body) { return this.post('/api/github/comment', { url, body }); },
+  ciStatus(url)      { return this.get(`/api/github/ci?url=${encodeURIComponent(url)}`); },
+};
+
+// ─────────────────────────────────────────────
+// UTILITIES
+// ─────────────────────────────────────────────
+function uid() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+
+function timeAtStep(track) {
+  const from = track.stepEnteredAt || track.addedAt;
+  if (!from) return null;
+  const diff = Date.now() - new Date(from).getTime();
+  const mins  = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days  = Math.floor(diff / 86400000);
+  if (days > 0)  return `${days}d`;
+  if (hours > 0) return `${hours}h`;
+  if (mins > 0)  return `${mins}m`;
+  return 'just now';
+}
+
+function copy(text) {
+  navigator.clipboard.writeText(text).then(() => toast('Copied to clipboard'));
+}
+
+function toast(msg, err = false) {
+  const el = document.createElement('div');
+  el.className = 'toast' + (err ? ' err' : '');
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2500);
+}
+
+function linearUrl(track) {
+  if (!track.linearIssue) return null;
+  return `https://linear.app/${cfg.linearWorkspace}/issue/${track.linearIssue}`;
+}
+
+// ─────────────────────────────────────────────
+// TRACK MUTATIONS
+// ─────────────────────────────────────────────
+function addTrack(t) {
+  tracks.unshift({ ...t, id: uid(), addedAt: new Date().toISOString() });
+  api.save();
+  render();
+}
+
+function updateTrack(id, patch) {
+  const i = tracks.findIndex(t => t.id === id);
+  if (i < 0) return;
+  if (patch.currentStep !== undefined && patch.currentStep !== tracks[i].currentStep) {
+    patch.stepEnteredAt = new Date().toISOString();
+  }
+  tracks[i] = { ...tracks[i], ...patch };
+  api.save();
+  render();
+}
+
+function removeTrack(id) {
+  tracks = tracks.filter(t => t.id !== id);
+  api.save();
+  render();
+}
+
+// ─────────────────────────────────────────────
+// STEP ACTIONS
+// ─────────────────────────────────────────────
+function doAction(id) {
+  const track = tracks.find(t => t.id === id);
+  if (!track) return;
+  const step = STEPS.find(s => s.id === track.currentStep);
+  if (!step) return;
+
+  switch (step.action) {
+    case 'copy':
+      const p = step.id === 1 ? prompts.step1(track)
+              : step.id === 3 ? prompts.step3(track)
+              : step.id === 4 ? prompts.step4(track)
+              : step.id === 8 ? prompts.step8(track)
+              : '';
+      copy(p);
+      break;
+    case 'post_github':
+      openModal({ type: 'confirm_post', trackId: id });
+      break;
+    case 'open_linear':
+      const lu = linearUrl(track);
+      if (lu) window.open(lu, '_blank');
+      else openModal({ type: 'linear_edit', trackId: id });
+      break;
+    case 'open_pr':
+      if (track.prUrl) window.open(track.prUrl, '_blank');
+      else toast('No PR URL', true);
+      break;
+    case 'input_copy':
+      openModal({ type: 'step7_input', trackId: id, reviewer: '', feedback: '' });
+      break;
+  }
+}
+
+function doDone(id) {
+  const track = tracks.find(t => t.id === id);
+  if (!track) return;
+  const step = STEPS.find(s => s.id === track.currentStep);
+  if (!step) return;
+
+  if (step.confirmPR) { openModal({ type: 'enter_pr', trackId: id }); return; }
+  if (step.branch)    { openModal({ type: 'step6_branch', trackId: id }); return; }
+  if (step.isFinal)   { updateTrack(id, { currentStep: 9, completedAt: new Date().toISOString() }); return; }
+  updateTrack(id, { currentStep: track.currentStep + 1 });
+}
+
+function stepBack(id) {
+  const track = tracks.find(t => t.id === id);
+  if (!track || track.currentStep <= 1) return;
+  const patch = { currentStep: track.currentStep - 1, ciInterrupted: false };
+  if (track.currentStep === 6) patch.step6Requested = false;
+  updateTrack(id, patch);
+}
+
+function markStep6Requested(id) {
+  updateTrack(id, { step6Requested: true });
+}
+
+async function doCIFailed(id) {
+  const track = tracks.find(t => t.id === id);
+  if (!track?.prUrl) { updateTrack(id, { ciInterrupted: true }); return; }
+  toast('Checking CI…');
+  const r = await api.ciStatus(track.prUrl);
+  if (r.error) {
+    toast(`Could not check CI: ${r.error} — marking as failed manually`, true);
+    updateTrack(id, { ciInterrupted: true });
+  } else if (r.status === 'passing') {
+    toast(`✓ ${r.summary} — CI is fine`);
+  } else if (r.status === 'pending') {
+    toast(r.summary);
+  } else {
+    updateTrack(id, { ciInterrupted: true });
+    toast(`CI is failing — ${r.summary}`, true);
+  }
+}
+
+function doCIResolved(id) {
+  updateTrack(id, { ciInterrupted: false });
+}
+
+async function checkCI(id) {
+  const track = tracks.find(t => t.id === id);
+  if (!track?.prUrl) { toast('No PR URL', true); return; }
+  toast('Checking CI…');
+  const r = await api.ciStatus(track.prUrl);
+  if (r.error) { toast(`Error: ${r.error}`, true); return; }
+  if (r.status === 'passing') {
+    updateTrack(id, { ciInterrupted: false });
+    toast(`✓ ${r.summary} — CI resolved`);
+  } else {
+    toast(r.summary, r.status === 'failing');
+  }
+}
+
+function doCIPrompt(id) {
+  const track = tracks.find(t => t.id === id);
+  if (track && track.prUrl) copy(prompts.ci(track));
+  else toast('No PR URL on this track', true);
+}
+
+function doStep7Loop(id) {
+  const track = tracks.find(t => t.id === id);
+  const loops = (track.step7Loops || 0) + 1;
+  updateTrack(id, { step7Loops: loops });
+  openModal({ type: 'step7_input', trackId: id, reviewer: '', feedback: '' });
+}
+
+// ─────────────────────────────────────────────
+// MODAL SYSTEM
+// ─────────────────────────────────────────────
+function openModal(state) {
+  modalState = state;
+  renderModal();
+}
+
+function closeModal() {
+  modalState = null;
+  document.getElementById('modal-root').innerHTML = '';
+}
+
+function renderModal() {
+  if (!modalState) return;
+  const root = document.getElementById('modal-root');
+  const prevFocusId = document.activeElement?.id || null;
+  root.innerHTML = `
+    <div class="modal-overlay" id="modal-overlay">
+      <div class="modal-box" id="modal-box" style="${modalState.type === 'flow' ? 'max-width:500px' : ''}">
+        ${renderModalContent()}
+      </div>
+    </div>
+  `;
+  document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (e.target.id === 'modal-overlay') closeModal();
+  });
+  setTimeout(() => {
+    if (prevFocusId) {
+      const el = document.getElementById(prevFocusId);
+      if (el) { el.focus(); return; }
+    }
+    const first = root.querySelector('input, textarea, select');
+    if (first) first.focus();
+  }, 40);
+}
+
+function renderModalContent() {
+  const m = modalState;
+  switch (m.type) {
+    case 'new_track':        return tplNewTrack();
+    case 'new_pr':           return tplNewPR();
+    case 'new_issue':        return tplNewIssue();
+    case 'enter_pr':         return tplEnterPR();
+    case 'step6_branch':     return tplStep6Branch();
+    case 'step7_input':      return tplStep7Input();
+    case 'confirm_post':     return tplConfirmPost();
+    case 'settings':         return tplSettings();
+    case 'remove_confirm':   return tplRemoveConfirm();
+    case 'notes':            return tplNotes();
+    case 'flow':             return tplFlow();
+    case 'linear_edit':      return tplLinearEdit();
+    default: return '';
+  }
+}
+
+// ─────────────────────────────────────────────
+// MODAL TEMPLATES
+// ─────────────────────────────────────────────
+function tplNewTrack() {
+  return `
+    <h2>New Track</h2>
+    <p class="sub">Where are you starting from?</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+      <button class="btn btn-dim" style="padding:1rem;text-align:left;border-radius:0.9rem;border:1px solid #2a2a45"
+        onclick="openModal({ type:'new_pr', prUrl:'', step:2, detecting:false, notes:[] })">
+        <div style="font-size:1.4rem;margin-bottom:0.4rem">🔗</div>
+        <div style="font-weight:600;font-size:0.875rem">I have a PR</div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:0.2rem">PR is open on GitHub</div>
+      </button>
+      <button class="btn btn-dim" style="padding:1rem;text-align:left;border-radius:0.9rem;border:1px solid #2a2a45"
+        onclick="openModal({ type:'new_issue', issue:'', title:'' })">
+        <div style="font-size:1.4rem;margin-bottom:0.4rem">🎯</div>
+        <div style="font-weight:600;font-size:0.875rem">No PR yet</div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:0.2rem">Start from a Linear issue</div>
+      </button>
+    </div>
+    <div style="text-align:right;margin-top:1rem">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    </div>
+  `;
+}
+
+function tplNewPR() {
+  const m = modalState;
+  const stepOpts = [2,3,4,5,6,7,8].map(n =>
+    `<option value="${n}" ${m.step === n ? 'selected' : ''}>${n}. ${STEPS.find(s=>s.id===n).name}</option>`
+  ).join('');
+  return `
+    <h2>New Track — Existing PR</h2>
+    <p class="sub" style="margin-bottom:1.25rem"></p>
+    <div style="display:flex;flex-direction:column;gap:1rem">
+      <div>
+        <label>PR URL</label>
+        <input class="inp" id="new-pr-url" placeholder="https://github.com/org/repo/pull/123"
+          value="${m.prUrl || ''}"
+          oninput="modalState.prUrl=this.value"
+          onblur="onNewPRUrlBlur()">
+        ${m.title ? `<div style="font-size:0.75rem;color:var(--amber);margin-top:0.3rem">✓ ${escHtml(m.title)}</div>` : ''}
+        ${m.fetchErr ? `<div style="font-size:0.75rem;color:#f87171;margin-top:0.3rem">${escHtml(m.fetchErr)}</div>` : ''}
+      </div>
+      <div>
+        <label>Linear Issue <span style="color:var(--text-dim)">(optional)</span></label>
+        <input class="inp" id="new-pr-linear" placeholder="ENG-4821" value="${m.linearIssue || ''}" oninput="modalState.linearIssue=this.value">
+      </div>
+      <div>
+        <label>Current Step</label>
+        <div style="display:flex;gap:0.5rem">
+          <select class="inp" style="flex:1" onchange="modalState.step=parseInt(this.value);renderModal()">${stepOpts}</select>
+          <button class="btn btn-dim" style="white-space:nowrap" onclick="onDetectStep()" ${m.detecting ? 'disabled' : ''}>
+            ${m.detecting ? '…' : '🔍 Detect'}
+          </button>
+        </div>
+        ${m.notes && m.notes.length ? `<div style="font-size:0.75rem;color:#fcd34d;margin-top:0.4rem">⚠ ${escHtml(m.notes[0])}</div>` : ''}
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:1.25rem;align-items:center">
+      <button class="btn btn-ghost" onclick="openModal({type:'new_track'})">← Back</button>
+      <div style="display:flex;gap:0.5rem">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-amber" onclick="confirmAddPR()" ${!m.prUrl ? 'disabled' : ''}>Add Track</button>
+      </div>
+    </div>
+  `;
+}
+
+function tplNewIssue() {
+  const m = modalState;
+  return `
+    <h2>New Track — Linear Issue</h2>
+    <p class="sub"></p>
+    <div style="display:flex;flex-direction:column;gap:1rem">
+      <div>
+        <label>Linear Issue ID</label>
+        <input class="inp" id="new-issue-input" placeholder="ENG-4821" value="${m.issue || ''}" oninput="modalState.issue=this.value">
+      </div>
+      <div>
+        <label>Short description <span style="color:var(--text-dim)">(optional)</span></label>
+        <input class="inp" placeholder="e.g. fix: billing widget" value="${m.title || ''}" oninput="modalState.title=this.value">
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:1.25rem">
+      <button class="btn btn-ghost" onclick="openModal({type:'new_track'})">← Back</button>
+      <div style="display:flex;gap:0.5rem">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-amber" onclick="confirmAddIssue()" ${!m.issue ? 'disabled' : ''}>Add Track</button>
+      </div>
+    </div>
+  `;
+}
+
+function tplEnterPR() {
+  const m = modalState;
+  return `
+    <h2>Step 1 Done — PR is Open</h2>
+    <p class="sub">Add the PR URL to continue tracking.</p>
+    <div>
+      <label>PR URL</label>
+      <input class="inp" id="enter-pr-url" placeholder="https://github.com/org/repo/pull/123"
+        value="${m.prUrl || ''}"
+        oninput="modalState.prUrl=this.value"
+        onblur="onEnterPRBlur()">
+      ${m.title ? `<div style="font-size:0.75rem;color:var(--amber);margin-top:0.3rem">✓ ${escHtml(m.title)}</div>` : ''}
+      ${m.fetchErr ? `<div style="font-size:0.75rem;color:#f87171;margin-top:0.3rem">${escHtml(m.fetchErr)}</div>` : ''}
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-top:1.25rem">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-amber" onclick="confirmEnterPR()" ${!m.prUrl ? 'disabled' : ''}>Continue to Step 2</button>
+    </div>
+  `;
+}
+
+function tplStep6Branch() {
+  return `
+    <h2>Senior Review Outcome</h2>
+    <p class="sub">What did the reviewer do?</p>
+    <div style="font-size:0.75rem;color:#fcd34d;background:#1c1500;border:1px solid #78350f;border-radius:0.5rem;padding:0.6rem 0.75rem;margin-bottom:1rem">
+      ⚠ Before continuing — did Aikido pass? It runs after review is requested, not on push.
+    </div>
+    <div style="display:flex;flex-direction:column;gap:0.6rem">
+      <button onclick="confirmStep6Branch(false)"
+        style="padding:0.85rem 1rem;text-align:left;background:#051a0e;border:1px solid #166534;border-radius:0.85rem;cursor:pointer">
+        <div style="font-weight:600;color:#86efac;font-size:0.875rem">✓ Approved — no comments</div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:0.2rem">Skip to Final Gate (Step 8)</div>
+      </button>
+      <button onclick="confirmStep6Branch(true)"
+        style="padding:0.85rem 1rem;text-align:left;background:#1c0f00;border:1px solid #78350f;border-radius:0.85rem;cursor:pointer">
+        <div style="font-weight:600;color:#fcd34d;font-size:0.875rem">💬 Left comments or requested changes</div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:0.2rem">Address Senior Feedback (Step 7)</div>
+      </button>
+    </div>
+    <div style="text-align:right;margin-top:1rem">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    </div>
+  `;
+}
+
+function tplStep7Input() {
+  const m = modalState;
+  return `
+    <h2>Senior Reviewer Feedback</h2>
+    <p class="sub">Describe the feedback so Claude can address it.</p>
+    <div style="display:flex;flex-direction:column;gap:0.9rem">
+      <div>
+        <label>Reviewer name</label>
+        <input class="inp" placeholder="e.g. Sarah" value="${m.reviewer || ''}" oninput="modalState.reviewer=this.value">
+      </div>
+      <div>
+        <label>Feedback</label>
+        <textarea class="inp" rows="3"
+          placeholder="e.g. said the error handling in handlePayment needs to be more specific"
+          oninput="modalState.feedback=this.value">${m.feedback || ''}</textarea>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-top:1.1rem">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-amber" onclick="confirmStep7()">Copy Prompt</button>
+    </div>
+  `;
+}
+
+function tplConfirmPost() {
+  const m = modalState;
+  const track = tracks.find(t => t.id === m.trackId);
+  return `
+    <h2>Post Review Comment</h2>
+    <p class="sub">This will post the four-angle review prompt to <strong style="color:var(--text)">#${track?.prNumber || '?'}</strong> as you. The Claude bot will respond in the PR.</p>
+    <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-top:1.25rem">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-amber" onclick="confirmPost()">Post Comment</button>
+    </div>
+  `;
+}
+
+function tplSettings() {
+  return `
+    <h2>Settings</h2>
+    <p class="sub"></p>
+    <div style="display:flex;flex-direction:column;gap:1rem">
+      <div>
+        <label>GitHub Personal Access Token</label>
+        <input class="inp" type="password" placeholder="ghp_..." value="${cfg.githubToken || ''}"
+          oninput="cfg.githubToken=this.value">
+        <div style="font-size:0.72rem;color:var(--text-dim);margin-top:0.3rem">Needs <code>repo</code> scope. Used to post review comments and fetch PR details.</div>
+      </div>
+      <div>
+        <label>Linear Workspace</label>
+        <input class="inp" placeholder="your-workspace" value="${cfg.linearWorkspace || ''}"
+          oninput="cfg.linearWorkspace=this.value">
+        <div style="font-size:0.72rem;color:var(--text-dim);margin-top:0.3rem">Your workspace slug from linear.app/{workspace}/...</div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-top:1.25rem">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-amber" onclick="saveSettings()">Save</button>
+    </div>
+  `;
+}
+
+function tplNotes() {
+  const track = tracks.find(t => t.id === modalState.trackId);
+  return `
+    <h2>Notes</h2>
+    <p class="sub">${escHtml(track?.title || '')}</p>
+    <textarea class="inp" rows="5" id="notes-input"
+      placeholder="e.g. Waiting for John to review, needs design sign-off before step 6…"
+      style="margin-bottom:1rem">${escHtml(track?.notes || '')}</textarea>
+    <div style="display:flex;justify-content:flex-end;gap:0.5rem">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-amber" onclick="saveNote('${modalState.trackId}')">Save</button>
+    </div>
+  `;
+}
+
+function saveNote(id) {
+  const text = document.getElementById('notes-input')?.value || '';
+  updateTrack(id, { notes: text });
+  closeModal();
+  toast(text ? 'Note saved' : 'Note cleared');
+}
+
+function tplLinearEdit() {
+  const track = tracks.find(t => t.id === modalState.trackId);
+  return `
+    <h2>Linear Issue</h2>
+    <p class="sub">${escHtml(track?.title || '')}</p>
+    <input class="inp" id="linear-edit-input" placeholder="ENG-4821"
+      value="${escHtml(track?.linearIssue || '')}"
+      style="margin-bottom:1rem"
+      onkeydown="if(event.key==='Enter')saveLinearIssue('${modalState.trackId}')">
+    <div style="display:flex;justify-content:flex-end;gap:0.5rem">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-amber" onclick="saveLinearIssue('${modalState.trackId}')">Save</button>
+    </div>
+  `;
+}
+
+function saveLinearIssue(id) {
+  const val = document.getElementById('linear-edit-input')?.value.trim() || '';
+  updateTrack(id, { linearIssue: val || null });
+  closeModal();
+  toast(val ? `Linear issue set to ${val}` : 'Linear issue cleared');
+}
+
+function tplFlow() {
+  const step = (n, label, tags = '') => `
+    <div style="display:flex;align-items:center;gap:0.6rem">
+      <div style="width:22px;height:22px;border-radius:50%;background:#1e1e30;border:1px solid #3a3a55;
+                  display:flex;align-items:center;justify-content:center;font-size:0.65rem;color:var(--muted);flex-shrink:0">${n}</div>
+      <div style="background:#1a1a2a;border:1px solid #2a2a45;border-radius:0.6rem;padding:0.4rem 0.75rem;
+                  font-size:0.82rem;font-weight:500;flex:1">${label}</div>
+      ${tags}
+    </div>`;
+
+  const arrow = (label = '') => `
+    <div style="display:flex;align-items:center;padding-left:10px;gap:0.5rem">
+      <div style="width:1px;height:20px;background:#2a2a45;margin-left:10px"></div>
+      ${label ? `<span style="font-size:0.7rem;color:#ef4444;margin-left:0.25rem">${label}</span>` : ''}
+    </div>`;
+
+  const ciTag = `<span style="font-size:0.68rem;color:#ef4444;white-space:nowrap">↯ CI can fail</span>`;
+  const loopTag = `<span style="font-size:0.68rem;color:var(--amber);white-space:nowrap">↩ can loop</span>`;
+  const aikidoTag = `<span style="font-size:0.68rem;color:#fcd34d;white-space:nowrap">🛡 Aikido runs here</span>`;
+
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem">
+      <h2 style="margin:0">Workflow</h2>
+      <button class="btn btn-ghost" onclick="closeModal()">✕</button>
+    </div>
+    <div style="margin-bottom:1rem">
+      <a href="#"
+         target="_blank" style="font-size:0.75rem;color:var(--muted);text-decoration:none"
+         onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
+        ↗ Full workflow doc
+      </a>
+    </div>
+    <div style="max-height:70vh;overflow-y:auto;padding-right:0.25rem">
+      <div style="display:flex;flex-direction:column;gap:0">
+        ${step(1, 'Implement Fix', ciTag)}
+        ${arrow()}
+        ${step(2, 'Trigger AI Review')}
+        ${arrow()}
+        ${step(3, 'Address Comments', ciTag)}
+        ${arrow()}
+        ${step(4, 'Update PR Description')}
+        ${arrow()}
+        ${step(5, 'Evidence → Linear')}
+        ${arrow()}
+        ${step(6, 'Request Senior Review', aikidoTag)}
+
+        <!-- Branch -->
+        <div style="padding-left:10px;margin-left:10px;margin-top:4px;display:flex;gap:1rem">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="width:1px;height:16px;background:#2a2a45"></div>
+            <div style="background:#052e16;border:1px solid #166534;border-radius:0.5rem;padding:0.3rem 0.6rem;font-size:0.72rem;color:#86efac;white-space:nowrap">✓ No comments</div>
+            <div style="width:1px;height:16px;background:#166534"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="width:1px;height:16px;background:#2a2a45"></div>
+            <div style="background:#1c0f00;border:1px solid #78350f;border-radius:0.5rem;padding:0.3rem 0.6rem;font-size:0.72rem;color:#fcd34d;white-space:nowrap">💬 Left comments</div>
+            <div style="width:1px;height:16px;background:#78350f"></div>
+            <div style="background:#1a1a2a;border:1px solid #2a2a45;border-radius:0.6rem;padding:0.4rem 0.75rem;font-size:0.82rem;font-weight:500;white-space:nowrap">7 · Senior Feedback</div>
+            <div style="font-size:0.68rem;color:var(--amber)">${loopTag} &nbsp; ${ciTag}</div>
+            <div style="width:1px;height:16px;background:#2a2a45"></div>
+          </div>
+        </div>
+
+        ${step(8, 'Final Gate')}
+        ${arrow()}
+        <div style="display:flex;align-items:center;gap:0.6rem">
+          <div style="width:22px;flex-shrink:0"></div>
+          <div style="background:#052e16;border:1px solid #166534;border-radius:0.6rem;padding:0.4rem 0.75rem;font-size:0.82rem;font-weight:600;color:#86efac">🚀 Merge</div>
+        </div>
+
+        <!-- CI note -->
+        <div style="margin-top:1.25rem;padding:0.75rem;background:#1c0808;border:1px solid #3b0606;border-radius:0.75rem">
+          <div style="font-size:0.72rem;color:#fca5a5;font-weight:600;margin-bottom:0.25rem">↯ CI Interrupt</div>
+          <div style="font-size:0.72rem;color:var(--muted);line-height:1.5">Can occur after any push — steps 1, 3, and 7. Fix and return to the step you were on.</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function tplRemoveConfirm() {
+  const m = modalState;
+  const t = tracks.find(t => t.id === m.trackId);
+  const label = t ? (t.prNumber ? `#${t.prNumber}` : t.linearIssue || 'this track') : 'this track';
+  return `
+    <h2>Remove Track?</h2>
+    <p class="sub">${escHtml(label)} will be removed from GrindRail. The PR itself is not affected.</p>
+    <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-top:1.25rem">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="removeTrack('${m.trackId}');closeModal()">Remove</button>
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────────────
+// MODAL CONFIRM HANDLERS
+// ─────────────────────────────────────────────
+async function onNewPRUrlBlur() {
+  const url = modalState.prUrl;
+  if (!url || !url.includes('github.com')) return;
+  modalState.fetchErr = null; modalState.title = null;
+  const r = await api.fetchPR(url);
+  if (r.error) modalState.fetchErr = r.error;
+  else { modalState.title = r.title; modalState.prNumber = r.number; modalState.repo = r.repo; modalState.isDraft = r.draft; }
+  renderModal();
+}
+
+async function onEnterPRBlur() {
+  const url = modalState.prUrl;
+  if (!url || !url.includes('github.com')) return;
+  const r = await api.fetchPR(url);
+  if (r.error) modalState.fetchErr = r.error;
+  else { modalState.title = r.title; modalState.prNumber = r.number; modalState.repo = r.repo; modalState.isDraft = r.draft; }
+  renderModal();
+}
+
+async function onDetectStep() {
+  if (!modalState.prUrl) { toast('Enter a PR URL first', true); return; }
+  modalState.detecting = true; renderModal();
+  const r = await api.detect(modalState.prUrl);
+  modalState.detecting = false;
+  if (r.error) toast(`Detect failed: ${r.error}`, true);
+  else { modalState.step = r.step; modalState.notes = r.notes || []; }
+  renderModal();
+}
+
+function confirmAddPR() {
+  if (!modalState.prUrl) return;
+  addTrack({
+    type: 'pr',
+    prUrl: modalState.prUrl,
+    prNumber: modalState.prNumber || null,
+    repo: modalState.repo || null,
+    title: modalState.title || modalState.prUrl,
+    linearIssue: modalState.linearIssue || null,
+    currentStep: modalState.step || 2,
+    ciInterrupted: false,
+    isDraft: modalState.isDraft || false,
+  });
+  closeModal();
+}
+
+function confirmAddIssue() {
+  if (!modalState.issue) return;
+  addTrack({
+    type: 'issue',
+    linearIssue: modalState.issue,
+    title: modalState.title || modalState.issue,
+    currentStep: 1,
+    ciInterrupted: false,
+  });
+  closeModal();
+}
+
+async function confirmEnterPR() {
+  if (!modalState.prUrl) return;
+  if (!modalState.title) {
+    const r = await api.fetchPR(modalState.prUrl);
+    if (!r.error) { modalState.title = r.title; modalState.prNumber = r.number; modalState.repo = r.repo; modalState.isDraft = r.draft; }
+  }
+  const trackId = modalState.trackId;
+  updateTrack(trackId, {
+    type: 'pr',
+    prUrl: modalState.prUrl,
+    prNumber: modalState.prNumber || null,
+    repo: modalState.repo || null,
+    title: modalState.title || modalState.prUrl,
+    currentStep: 2,
+    isDraft: modalState.isDraft || false,
+  });
+  closeModal();
+}
+
+function confirmStep6Branch(hasComments) {
+  const trackId = modalState.trackId;
+  closeModal();
+  updateTrack(trackId, { currentStep: hasComments ? 7 : 8 });
+}
+
+function confirmStep7() {
+  const { trackId, reviewer, feedback } = modalState;
+  const track = tracks.find(t => t.id === trackId);
+  const prompt = prompts.step7(track, reviewer || 'The reviewer', feedback || '[describe the feedback]');
+  closeModal();
+  copy(prompt);
+}
+
+async function confirmPost() {
+  const trackId = modalState.trackId;
+  closeModal();
+  const track = tracks.find(t => t.id === trackId);
+  if (!track?.prUrl) { toast('No PR URL', true); return; }
+  toast('Posting comment…');
+  const r = await api.comment(track.prUrl, FOUR_ANGLE);
+  if (r.error) toast(`Failed: ${r.error}`, true);
+  else toast('Comment posted ✓');
+}
+
+async function saveSettings() {
+  await api.saveCfg();
+  closeModal();
+  toast('Settings saved');
+  render();
+}
+
+// ─────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────
+function render() {
+  const active = tracks.filter(t => t.currentStep < 9);
+  const done   = tracks.filter(t => t.currentStep >= 9);
+  const noToken = !cfg.githubToken;
+
+  document.getElementById('app').innerHTML = `
+    <header style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:1px solid #1a1a2a">
+      <div style="display:flex;align-items:center;gap:0.6rem">
+        <span style="font-size:1.4rem">⚡</span>
+        <span style="font-size:1.2rem;font-weight:700;letter-spacing:-0.02em">GrindRail</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.5rem">
+        ${noToken ? `<span class="pill pill-red">No GitHub token</span>` : ''}
+        <button class="btn btn-ghost" onclick="openModal({type:'flow'})" title="View workflow">Flow</button>
+        <button class="btn btn-ghost" onclick="openModal({type:'settings'})" title="Settings">⚙</button>
+        <button class="btn btn-amber" onclick="openModal({type:'new_track'})">+ New Track</button>
+      </div>
+    </header>
+
+    <main style="padding:1.5rem">
+      ${active.length === 0 && done.length === 0 ? renderEmpty() : ''}
+
+      ${active.length > 0 ? `
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem">
+          ${active.map(renderCard).join('')}
+        </div>
+      ` : ''}
+
+      ${done.length > 0 ? `
+        <div style="margin-top:2rem">
+          <div style="font-size:0.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.75rem">Complete</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:0.6rem">
+            ${done.map(renderDoneCard).join('')}
+          </div>
+        </div>
+      ` : ''}
+    </main>
+
+    <div id="modal-root"></div>
+  `;
+}
+
+function renderEmpty() {
+  return `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5rem 1rem;text-align:center">
+      <div style="font-size:3rem;margin-bottom:1rem">⚡</div>
+      <h2 style="margin-bottom:0.4rem">No active tracks</h2>
+      <p style="color:var(--muted);font-size:0.875rem;margin-bottom:1.5rem;max-width:280px">Add a PR or Linear issue to start grinding it through the review flow.</p>
+      <button class="btn btn-amber" onclick="openModal({type:'new_track'})">+ New Track</button>
+    </div>
+  `;
+}
+
+function renderCard(track) {
+  const step = STEPS.find(s => s.id === track.currentStep);
+  if (!step) return '';
+  const isCI = track.ciInterrupted;
+
+  const actionLabel =
+    step.action === 'post_github' ? '▶ Post Review Comment' :
+    step.action === 'open_linear' ? '↗ Open Linear Issue' :
+    step.action === 'open_pr'     ? '↗ Open PR on GitHub' :
+    step.action === 'input_copy'  ? '📋 Copy Prompt' :
+    '📋 Copy Prompt';
+
+  const showCIButton = track.currentStep >= 1 && track.prUrl;
+
+  return `
+    <div class="card ${isCI ? 'ci-active' : ''}" style="padding:1.25rem">
+
+      <!-- Header row -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.75rem">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.25rem;flex-wrap:wrap">
+            ${track.prNumber ? `<span style="font-size:0.72rem;color:var(--muted);font-family:monospace">#${track.prNumber}</span>` : ''}
+            ${track.linearIssue
+              ? `<span class="pill pill-amber" style="cursor:pointer" title="Edit Linear issue" onclick="openModal({type:'linear_edit',trackId:'${track.id}'})">${escHtml(track.linearIssue)}</span>`
+              : `<button class="btn btn-ghost" style="font-size:0.7rem;padding:0.1rem 0.4rem;color:var(--muted)" onclick="openModal({type:'linear_edit',trackId:'${track.id}'})">+ issue</button>`}
+            ${track.isDraft ? `<span class="pill" style="background:#1e1a2e;border:1px solid #4c3f7a;color:#a78bfa">Draft</span>` : ''}
+            ${isCI ? `<span class="pill pill-red">⚠ CI failing</span>` : ''}
+            ${timeAtStep(track) ? `<span style="font-size:0.7rem;color:var(--text-dim)">· ${timeAtStep(track)}</span>` : ''}
+          </div>
+          <div style="font-size:0.875rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${escHtml(track.title || '')}">
+            ${escHtml(track.title || 'Untitled')}
+          </div>
+          ${track.notes ? `<div style="font-size:0.72rem;color:var(--muted);margin-top:0.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${escHtml(track.notes)}">✎ ${escHtml(track.notes)}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:0.25rem;margin-left:0.5rem;flex-shrink:0">
+          ${track.prUrl ? `<a href="${escHtml(track.prUrl)}" target="_blank" class="btn btn-ghost" style="font-size:0.75rem">↗</a>` : ''}
+          ${track.prUrl && track.title === track.prUrl ? `<button class="btn btn-ghost" style="font-size:0.75rem" title="Fetch PR title" onclick="refetchTitle('${track.id}')">↻</button>` : ''}
+          ${track.prUrl && track.currentStep > 1 ? `<button class="btn btn-ghost" style="font-size:0.75rem" title="Re-detect step from GitHub" onclick="redetectStep('${track.id}')">⟳</button>` : ''}
+          <button class="btn btn-ghost" style="font-size:0.75rem;${track.notes ? 'color:var(--amber)' : ''}" title="${track.notes ? 'Edit note' : 'Add note'}" onclick="openModal({type:'notes',trackId:'${track.id}'})">✎</button>
+          <button class="btn btn-ghost" style="font-size:0.9rem;color:#4b1c1c" onclick="openModal({type:'remove_confirm',trackId:'${track.id}'})">×</button>
+        </div>
+      </div>
+
+      <!-- Progress dots -->
+      <div style="display:flex;align-items:center;gap:0.45rem;margin-bottom:1rem">
+        ${renderDots(track)}
+      </div>
+
+      <!-- Step block or CI block -->
+      ${isCI ? renderCIBlock(track) : renderStepBlock(track, step, actionLabel, showCIButton)}
+    </div>
+  `;
+}
+
+function renderDots(track) {
+  return STEPS.map(s => {
+    let cls = '';
+    if (s.id < track.currentStep) cls = 'dot-done';
+    else if (s.id === track.currentStep) cls = track.ciInterrupted ? 'dot-ci' : 'dot-now';
+    else cls = 'dot-todo';
+    return `<span class="dot ${cls}" title="Step ${s.id}: ${s.name}"></span>`;
+  }).join('');
+}
+
+function renderStepBlock(track, step, actionLabel, showCIButton) {
+  const isStep6 = track.currentStep === 6;
+  const step6Waiting = isStep6 && track.step6Requested;
+
+  const header = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.2rem">
+      <div style="font-size:0.7rem;color:var(--muted)">Step ${track.currentStep} of 8</div>
+      ${track.currentStep > 1 ? `<button class="btn btn-ghost" style="font-size:0.72rem;padding:0.1rem 0.4rem" onclick="stepBack('${track.id}')" title="Go back one step">← Prev Step</button>` : ''}
+    </div>
+    <div style="font-size:0.875rem;font-weight:600;margin-bottom:0.25rem">
+      ${step.name}
+      ${step.loopable && (track.step7Loops || 0) > 0 ? `<span style="font-size:0.7rem;color:var(--amber);font-weight:400;margin-left:0.4rem">Loop ${(track.step7Loops || 0) + 1}</span>` : ''}
+    </div>`;
+
+  if (step6Waiting) {
+    return `
+      <div>
+        ${header}
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.9rem">
+          <span style="font-size:0.82rem;color:#a78bfa">⏳ Awaiting senior review…</span>
+        </div>
+        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-amber" onclick="doDone('${track.id}')">Reviewer responded →</button>
+          ${track.prUrl ? `<a href="${escHtml(track.prUrl)}" target="_blank" class="btn btn-ghost" style="font-size:0.78rem">↗ PR</a>` : ''}
+          ${showCIButton && !track.ciInterrupted ? `<button class="btn btn-ghost" style="font-size:0.75rem;color:var(--text-dim);margin-left:auto" onclick="doCIFailed('${track.id}')" title="Mark CI as failing">↯ CI</button>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div>
+      ${header}
+      <div class="step-desc" style="margin-bottom:0.9rem">${step.desc}</div>
+      ${track.currentStep === 8 ? renderStep8Checklist(track) : ''}
+      <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
+        ${isStep6
+          ? `<button class="btn btn-ghost" onclick="doAction('${track.id}')">↗ Open PR</button>
+             <button class="btn btn-amber" onclick="markStep6Requested('${track.id}')">✓ Review Requested</button>`
+          : `<button class="btn btn-amber" onclick="doAction('${track.id}')">${actionLabel}</button>
+             ${track.currentStep === 8
+               ? `<button class="btn btn-dim" onclick="doDone('${track.id}')" ${!allChecked(track) ? 'disabled title="Complete all checklist items first"' : ''}>${step.doneLabel}</button>`
+               : `<button class="btn btn-dim" onclick="doDone('${track.id}')">${step.doneLabel}</button>`}`
+        }
+        ${step.loopable ? `<button class="btn btn-ghost" style="font-size:0.78rem" onclick="doStep7Loop('${track.id}')">+ More Feedback</button>` : ''}
+        ${showCIButton && !track.ciInterrupted ? `<button class="btn btn-ghost" style="font-size:0.75rem;color:var(--text-dim);margin-left:auto" onclick="doCIFailed('${track.id}')" title="Mark CI as failing">↯ CI</button>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+const CHECKLIST = [
+  { key: 'conversations', label: 'All conversations resolved on GitHub' },
+  { key: 'commits',       label: 'All commits pushed to the branch' },
+  { key: 'ci',            label: 'All CI checks passing' },
+  { key: 'aikido',        label: 'No unresolved Aikido issues' },
+  { key: 'approved',      label: 'Senior reviewer has approved' },
+  { key: 'description',   label: 'PR description is accurate' },
+];
+
+function allChecked(track) {
+  const c = track.step8Checks || {};
+  return CHECKLIST.every(item => c[item.key]);
+}
+
+function toggleCheck(id, key) {
+  const track = tracks.find(t => t.id === id);
+  if (!track) return;
+  const checks = { ...(track.step8Checks || {}), [key]: !(track.step8Checks || {})[key] };
+  updateTrack(id, { step8Checks: checks });
+}
+
+function renderStep8Checklist(track) {
+  const checks = track.step8Checks || {};
+  const items = CHECKLIST.map(item => `
+    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;padding:0.2rem 0">
+      <input type="checkbox" ${checks[item.key] ? 'checked' : ''}
+        onchange="toggleCheck('${track.id}','${item.key}')"
+        style="accent-color:var(--amber);width:14px;height:14px;flex-shrink:0">
+      <span style="font-size:0.78rem;color:${checks[item.key] ? 'var(--muted)' : 'var(--text)'};
+        text-decoration:${checks[item.key] ? 'line-through' : 'none'};transition:all 0.15s">
+        ${item.label}
+      </span>
+    </label>
+  `).join('');
+  return `<div style="background:#0f0f1a;border:1px solid #1e1e30;border-radius:0.6rem;padding:0.6rem 0.75rem;margin-bottom:0.9rem">${items}</div>`;
+}
+
+function renderCIBlock(track) {
+  return `
+    <div class="ci-block">
+      <div style="font-size:0.875rem;font-weight:600;color:#fca5a5;margin-bottom:0.6rem">CI is failing</div>
+      <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
+        <button class="btn btn-dim" onclick="doCIPrompt('${track.id}')">📋 Copy Fix Prompt</button>
+        <button class="btn btn-dim" onclick="checkCI('${track.id}')">↻ Check CI</button>
+        <button class="btn btn-green" onclick="doCIResolved('${track.id}')">✓ Mark Resolved</button>
+        <button class="btn btn-ghost" style="font-size:0.75rem;margin-left:auto" onclick="doCIResolved('${track.id}')">← Back</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderDoneCard(track) {
+  return `
+    <div class="card" style="padding:0.85rem 1rem;opacity:0.45;display:flex;align-items:center;justify-content:space-between;transition:opacity 0.15s"
+      onmouseenter="this.style.opacity='0.7'" onmouseleave="this.style.opacity='0.45'">
+      <div style="display:flex;align-items:center;gap:0.5rem;min-width:0">
+        <span style="color:#4ade80;font-size:0.9rem">✓</span>
+        ${track.prNumber ? `<span style="font-size:0.72rem;color:var(--muted);font-family:monospace">#${track.prNumber}</span>` : ''}
+        <span style="font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(track.title || 'Untitled')}</span>
+      </div>
+      <div style="display:flex;gap:0.25rem;flex-shrink:0;margin-left:0.5rem">
+        ${track.prUrl ? `<a href="${escHtml(track.prUrl)}" target="_blank" class="btn btn-ghost" style="font-size:0.75rem">↗</a>` : ''}
+        <button class="btn btn-ghost" style="font-size:0.9rem;color:#4b1c1c" onclick="removeTrack('${track.id}')">×</button>
+      </div>
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─────────────────────────────────────────────
+// REFETCH TITLE
+// ─────────────────────────────────────────────
+async function redetectStep(id) {
+  const track = tracks.find(t => t.id === id);
+  if (!track?.prUrl) return;
+  toast('Syncing…');
+  const [detected, pr] = await Promise.all([
+    api.detect(track.prUrl),
+    api.fetchPR(track.prUrl),
+  ]);
+  const patch = {};
+  if (!pr.error) {
+    patch.isDraft = pr.draft;
+    if (pr.title && pr.title !== track.prUrl) patch.title = pr.title;
+  }
+  if (detected.error) {
+    toast(`Detect failed: ${detected.error}`, true);
+  } else if (detected.step <= track.currentStep) {
+    toast(`Step unchanged — PR info refreshed`);
+  } else {
+    patch.currentStep = detected.step;
+    toast(`Updated to step ${detected.step}${detected.notes?.length ? ' — check notes' : ''}`);
+  }
+  if (Object.keys(patch).length) updateTrack(id, patch);
+  if (detected.notes?.length) setTimeout(() => toast(`⚠ ${detected.notes[0]}`), 800);
+}
+
+async function refetchTitle(id) {
+  const track = tracks.find(t => t.id === id);
+  if (!track?.prUrl) return;
+  const r = await api.fetchPR(track.prUrl);
+  if (r.error) { toast(`Could not fetch title: ${r.error}`, true); return; }
+  updateTrack(id, { title: r.title, prNumber: r.number, repo: r.repo, isDraft: r.draft });
+  toast('Title updated');
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+async function backfillDraftStatus() {
+  const stale = tracks.filter(t => t.prUrl && t.isDraft === undefined);
+  for (const track of stale) {
+    const r = await api.fetchPR(track.prUrl);
+    if (!r.error) updateTrack(track.id, { isDraft: r.draft });
+  }
+}
+
+async function init() {
+  try {
+    const [s, c] = await Promise.all([api.get('/api/state'), api.get('/api/config')]);
+    tracks = s.tracks || [];
+    cfg = { ...cfg, ...c };
+  } catch(e) {
+    console.error('Failed to load:', e);
+  }
+  render();
+  if (!cfg.githubToken) setTimeout(() => openModal({ type: 'settings' }), 300);
+  else backfillDraftStatus();
+}
+
+init();
+</script>
+</body>
+</html>
