@@ -141,6 +141,7 @@
 <div id="app">
   <div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#4b5563">Loading...</div>
 </div>
+<div id="modal-root"></div>
 
 <script>
 // ─────────────────────────────────────────────
@@ -174,7 +175,7 @@ const STEPS = [
   { id: 1, name: 'Implement Fix',          short: 'Implement',   action: 'copy',        doneLabel: 'PR is Open', confirmPR: true,
     desc: 'Run the bug-fix skill in Claude Code with the Linear issue ID.' },
   { id: 2, name: 'Trigger AI Review',      short: 'AI Review',   action: 'post_github', doneLabel: 'Mark Done',
-    desc: 'Post the four-angle review comment. Wait for Claude bot and Aikido before proceeding.' },
+    desc: 'Post the four-angle review comment. Wait for the Claude bot review before proceeding.' },
   { id: 3, name: 'Address Comments',       short: 'Address',     action: 'copy',        doneLabel: 'Mark Done',
     desc: 'Address all review comments. Claude will also verify replies match the code.' },
   { id: 4, name: 'Update PR Description',  short: 'Update Desc', action: 'copy',        doneLabel: 'Mark Done',
@@ -414,9 +415,6 @@ function renderModal() {
       </div>
     </div>
   `;
-  document.getElementById('modal-overlay').addEventListener('click', e => {
-    if (e.target.id === 'modal-overlay') closeModal();
-  });
   setTimeout(() => {
     if (prevFocusId) {
       const el = document.getElementById(prevFocusId);
@@ -486,7 +484,7 @@ function tplNewPR() {
         <label>PR URL</label>
         <input class="inp" id="new-pr-url" placeholder="https://github.com/org/repo/pull/123"
           value="${m.prUrl || ''}"
-          oninput="modalState.prUrl=this.value"
+          oninput="modalState.prUrl=this.value;document.getElementById('add-pr-btn').disabled=!this.value"
           onblur="onNewPRUrlBlur()">
         ${m.title ? `<div style="font-size:0.75rem;color:var(--amber);margin-top:0.3rem">✓ ${escHtml(m.title)}</div>` : ''}
         ${m.fetchErr ? `<div style="font-size:0.75rem;color:#f87171;margin-top:0.3rem">${escHtml(m.fetchErr)}</div>` : ''}
@@ -510,7 +508,7 @@ function tplNewPR() {
       <button class="btn btn-ghost" onclick="openModal({type:'new_track'})">← Back</button>
       <div style="display:flex;gap:0.5rem">
         <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-        <button class="btn btn-amber" onclick="confirmAddPR()" ${!m.prUrl ? 'disabled' : ''}>Add Track</button>
+        <button id="add-pr-btn" class="btn btn-amber" onclick="confirmAddPR()" ${!m.prUrl ? 'disabled' : ''}>Add Track</button>
       </div>
     </div>
   `;
@@ -524,7 +522,7 @@ function tplNewIssue() {
     <div style="display:flex;flex-direction:column;gap:1rem">
       <div>
         <label>Linear Issue ID</label>
-        <input class="inp" id="new-issue-input" placeholder="ENG-4821" value="${m.issue || ''}" oninput="modalState.issue=this.value">
+        <input class="inp" id="new-issue-input" placeholder="ENG-4821" value="${m.issue || ''}" oninput="modalState.issue=this.value;document.getElementById('add-issue-btn').disabled=!this.value">
       </div>
       <div>
         <label>Short description <span style="color:var(--text-dim)">(optional)</span></label>
@@ -535,7 +533,7 @@ function tplNewIssue() {
       <button class="btn btn-ghost" onclick="openModal({type:'new_track'})">← Back</button>
       <div style="display:flex;gap:0.5rem">
         <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-        <button class="btn btn-amber" onclick="confirmAddIssue()" ${!m.issue ? 'disabled' : ''}>Add Track</button>
+        <button id="add-issue-btn" class="btn btn-amber" onclick="confirmAddIssue()" ${!m.issue ? 'disabled' : ''}>Add Track</button>
       </div>
     </div>
   `;
@@ -939,8 +937,6 @@ function render() {
         </div>
       ` : ''}
     </main>
-
-    <div id="modal-root"></div>
   `;
 }
 
