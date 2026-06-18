@@ -1,4 +1,4 @@
-# ⚡ GrindRail
+# ⚡ Merginator 3000
 
 A local web app for tracking pull requests through an AI-assisted review workflow. Every PR, every step, every safeguard.
 
@@ -6,17 +6,13 @@ A local web app for tracking pull requests through an AI-assisted review workflo
 
 ## The name
 
-In Ratchet & Clank, grind rails carry you through a level. Pick the wrong one and you're back at the start. Stay on a looping rail and you never advance.
-
-![Ratchet & Clank grind rail](docs/BataliaGrindRail.webp)
-
-GrindRail keeps you on the right one — tracking every PR you have in flight, the exact step each one is on, and every safeguard in place before you move on. With AI-generated PRs, it's easy to lose track of where each one is up to.
+In Ratchet & Clank, every weapon has a name that's one part function, one part absurdity. The Groovitron. The Sheepinator. The Merginator 3000 merges PRs. That's the whole pitch.
 
 ---
 
 ## What it does
 
-GrindRail gives each PR its own card and walks it through an 8-step workflow — from implementation through AI review, senior review, and merge. It connects to GitHub to detect which step a PR is actually on, checks CI status, and posts the four-angle review prompt directly to the PR.
+Merginator 3000 gives each PR its own card and walks it through an 8-step workflow — from implementation through AI review, senior review, and merge. It connects to GitHub to detect which step a PR is actually on, checks CI status, and posts the four-angle review prompt directly to the PR.
 
 ```
 1. Implement Fix
@@ -29,9 +25,9 @@ GrindRail gives each PR its own card and walks it through an 8-step workflow —
 8. Final Gate → 🚀 Merge
 ```
 
-The pipeline can send you back at any step — CI failures, security scan blocks, reviewer feedback loops. GrindRail tracks all of it.
+The pipeline can send you back at any step — CI failures, security scan blocks, reviewer feedback loops. Merginator 3000 tracks all of it.
 
-![GrindRail app screenshot](docs/GrindRailScreenshot.png)
+![Merginator 3000 app screenshot](docs/MerginatorScreenshot.png)
 
 ---
 
@@ -47,8 +43,8 @@ The pipeline can send you back at any step — CI failures, security scan blocks
 ## Setup
 
 ```bash
-git clone https://github.com/dane-h/grindrail.git
-cd grindrail
+git clone https://github.com/dane-h/merginator.git
+cd merginator
 ```
 
 Then either double-click `start.command` or:
