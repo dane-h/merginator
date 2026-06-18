@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GrindRail</title>
+  <title>Merginator 3000</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -780,7 +780,7 @@ function tplRemoveConfirm() {
   const label = t ? (t.prNumber ? `#${t.prNumber}` : t.issueUrl || 'this track') : 'this track';
   return `
     <h2>Remove Track?</h2>
-    <p class="sub">${escHtml(label)} will be removed from GrindRail. The PR itself is not affected.</p>
+    <p class="sub">${escHtml(label)} will be removed from Merginator. The PR itself is not affected.</p>
     <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-top:1.25rem">
       <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
       <button class="btn btn-danger" onclick="removeTrack('${m.trackId}');closeModal()">Remove</button>
@@ -913,7 +913,7 @@ function render() {
     <header style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:1px solid #1a1a2a">
       <div style="display:flex;align-items:center;gap:0.6rem">
         <span style="font-size:1.4rem">⚡</span>
-        <span style="font-size:1.2rem;font-weight:700;letter-spacing:-0.02em">GrindRail</span>
+        <span style="font-size:1.2rem;font-weight:700;letter-spacing:-0.02em">Merginator <span style="color:var(--amber)">3000</span></span>
       </div>
       <div style="display:flex;align-items:center;gap:0.5rem">
         ${noToken ? `<span class="pill pill-red">No GitHub token</span>` : ''}

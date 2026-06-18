@@ -33,7 +33,7 @@ def github(path, token, method='GET', data=None):
     url = f'https://api.github.com{path}'
     headers = {
         'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'GrindRail/1.0',
+        'User-Agent': 'Merginator/1.0',
     }
     if token:
         headers['Authorization'] = f'token {token}'
@@ -66,7 +66,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         params = urllib.parse.parse_qs(p.query)
 
         if path in ('/', '/index.html'):
-            self._file('grindrail.html', 'text/html')
+            self._file('merginator.html', 'text/html')
         elif path == '/api/state':
             self._json(json.loads(STATE_FILE.read_text()))
         elif path == '/api/config':
@@ -262,6 +262,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
     ensure_data()
-    print(f'\033[1;33m⚡ GrindRail\033[0m is running at \033[1;36mhttp://localhost:{PORT}\033[0m')
+    print(f'\033[1;33m⚡ Merginator 3000\033[0m is running at \033[1;36mhttp://localhost:{PORT}\033[0m')
     with http.server.HTTPServer(('127.0.0.1', PORT), Handler) as server:
         server.serve_forever()
