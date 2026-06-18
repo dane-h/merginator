@@ -18,7 +18,7 @@ def ensure_data():
     if not STATE_FILE.exists():
         STATE_FILE.write_text(json.dumps({"tracks": []}))
     if not CONFIG_FILE.exists():
-        CONFIG_FILE.write_text(json.dumps({"githubToken": "", "linearWorkspace": "deskpro"}))
+        CONFIG_FILE.write_text(json.dumps({"githubToken": "", "workflowDocUrl": ""}))
 
 
 def parse_pr_url(url):
@@ -70,7 +70,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
         elif path == '/api/state':
             self._json(json.loads(STATE_FILE.read_text()))
         elif path == '/api/config':
-            self._json(json.loads(CONFIG_FILE.read_text()))
+            config = json.loads(CONFIG_FILE.read_text())
+            safe = {k: v for k, v in config.items() if k != 'githubToken'}
+            safe['hasToken'] = bool(config.get('githubToken', ''))
+            self._json(safe)
         elif path == '/api/github/pr':
             self._pr_fetch(params)
         elif path == '/api/github/detect':
@@ -81,14 +84,20 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._json({'error': 'Not found'}, 404)
 
     def do_POST(self):
-        length = int(self.headers.get('Content-Length', 0))
-        body = json.loads(self.rfile.read(length)) if length else {}
+        try:
+            length = int(self.headers.get('Content-Length', 0))
+            body = json.loads(self.rfile.read(length)) if length else {}
+        except (ValueError, json.JSONDecodeError):
+            return self._json({'error': 'Invalid request body'}, 400)
         path = urllib.parse.urlparse(self.path).path
 
         if path == '/api/state':
             STATE_FILE.write_text(json.dumps(body, indent=2))
             self._json({'ok': True})
         elif path == '/api/config':
+            existing = json.loads(CONFIG_FILE.read_text())
+            if not body.get('githubToken'):
+                body['githubToken'] = existing.get('githubToken', '')
             CONFIG_FILE.write_text(json.dumps(body, indent=2))
             self._json({'ok': True})
         elif path == '/api/github/comment':
@@ -243,7 +252,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _cors(self):
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Origin', f'http://localhost:{PORT}')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
 
@@ -254,5 +263,5 @@ class Handler(http.server.BaseHTTPRequestHandler):
 if __name__ == '__main__':
     ensure_data()
     print(f'\033[1;33m⚡ GrindRail\033[0m is running at \033[1;36mhttp://localhost:{PORT}\033[0m')
-    with http.server.HTTPServer(('', PORT), Handler) as server:
+    with http.server.HTTPServer(('127.0.0.1', PORT), Handler) as server:
         server.serve_forever()

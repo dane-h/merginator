@@ -196,7 +196,7 @@ const STEPS = [
 // STATE
 // ─────────────────────────────────────────────
 let tracks = [];
-let cfg = { githubToken: '' };
+let cfg = { githubToken: '', hasToken: false };
 let modalState = null;
 
 // ─────────────────────────────────────────────
@@ -306,11 +306,11 @@ function doAction(id) {
       break;
     case 'open_linear':
       const lu = issueUrl(track);
-      if (lu) window.open(lu, '_blank');
+      if (lu) window.open(safeUrl(lu), '_blank');
       else openModal({ type: 'linear_edit', trackId: id });
       break;
     case 'open_pr':
-      if (track.prUrl) window.open(track.prUrl, '_blank');
+      if (track.prUrl) window.open(safeUrl(track.prUrl), '_blank');
       else toast('No PR URL', true);
       break;
     case 'input_copy':
@@ -335,7 +335,7 @@ function stepBack(id) {
   const track = tracks.find(t => t.id === id);
   if (!track || track.currentStep <= 1) return;
   const patch = { currentStep: track.currentStep - 1, ciInterrupted: false };
-  if (track.currentStep === 6) patch.step6Requested = false;
+  if (track.currentStep === 7) patch.step6Requested = false;
   updateTrack(id, patch);
 }
 
@@ -630,7 +630,7 @@ function tplSettings() {
     <div style="display:flex;flex-direction:column;gap:1rem">
       <div>
         <label>GitHub Personal Access Token</label>
-        <input class="inp" type="password" placeholder="ghp_..." value="${cfg.githubToken || ''}"
+        <input class="inp" type="password" placeholder="${cfg.hasToken ? 'Token saved — enter new value to replace' : 'ghp_...'}" value=""
           oninput="cfg.githubToken=this.value">
         <div style="font-size:0.72rem;color:var(--text-dim);margin-top:0.3rem">Needs <code>repo</code> scope. Used to post review comments and fetch PR details.</div>
       </div>
@@ -719,7 +719,7 @@ function tplFlow() {
       <button class="btn btn-ghost" onclick="closeModal()">✕</button>
     </div>
     <div style="margin-bottom:1rem">
-      <a href="${cfg.workflowDocUrl || '#'}"
+      <a href="${safeUrl(cfg.workflowDocUrl || '')}"
          target="_blank" style="font-size:0.75rem;color:var(--muted);text-decoration:none;${!cfg.workflowDocUrl ? 'opacity:0.4;cursor:default;pointer-events:none' : ''}"
          onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'"
          title="${cfg.workflowDocUrl ? '' : 'Set a Workflow Doc URL in Settings'}">
@@ -894,6 +894,8 @@ async function confirmPost() {
 
 async function saveSettings() {
   await api.saveCfg();
+  if (cfg.githubToken) cfg.hasToken = true;
+  cfg.githubToken = '';
   closeModal();
   toast('Settings saved');
   render();
@@ -905,7 +907,7 @@ async function saveSettings() {
 function render() {
   const active = tracks.filter(t => t.currentStep < 9);
   const done   = tracks.filter(t => t.currentStep >= 9);
-  const noToken = !cfg.githubToken;
+  const noToken = !cfg.hasToken;
 
   document.getElementById('app').innerHTML = `
     <header style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:1px solid #1a1a2a">
@@ -976,7 +978,7 @@ function renderCard(track) {
           <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.25rem;flex-wrap:wrap">
             ${track.prNumber ? `<span style="font-size:0.72rem;color:var(--muted);font-family:monospace">#${track.prNumber}</span>` : ''}
             ${track.issueUrl
-              ? `<a href="${escHtml(track.issueUrl)}" target="_blank" class="pill pill-amber" style="cursor:pointer;text-decoration:none" title="${escHtml(track.issueUrl)}">Issue ↗</a>`
+              ? `<a href="${escHtml(safeUrl(track.issueUrl))}" target="_blank" class="pill pill-amber" style="cursor:pointer;text-decoration:none" title="${escHtml(track.issueUrl)}">Issue ↗</a>`
               : `<button class="btn btn-ghost" style="font-size:0.7rem;padding:0.1rem 0.4rem;color:var(--text-dim);border:1px dashed #3a3a55" onclick="openModal({type:'linear_edit',trackId:'${track.id}'})">+ issue</button>`}
             ${track.isDraft ? `<span class="pill" style="background:#1e1a2e;border:1px solid #4c3f7a;color:#a78bfa">Draft</span>` : ''}
             ${isCI ? `<span class="pill pill-red">⚠ CI failing</span>` : ''}
@@ -988,7 +990,7 @@ function renderCard(track) {
           ${track.notes ? `<div style="font-size:0.72rem;color:var(--muted);margin-top:0.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${escHtml(track.notes)}">✎ ${escHtml(track.notes)}</div>` : ''}
         </div>
         <div style="display:flex;gap:0.25rem;margin-left:0.5rem;flex-shrink:0">
-          ${track.prUrl ? `<a href="${escHtml(track.prUrl)}" target="_blank" class="btn btn-ghost" style="font-size:0.75rem">↗</a>` : ''}
+          ${track.prUrl ? `<a href="${escHtml(safeUrl(track.prUrl))}" target="_blank" class="btn btn-ghost" style="font-size:0.75rem">↗</a>` : ''}
           ${track.prUrl && track.title === track.prUrl ? `<button class="btn btn-ghost" style="font-size:0.75rem" title="Fetch PR title" onclick="refetchTitle('${track.id}')">↻</button>` : ''}
           ${track.prUrl && track.currentStep > 1 ? `<button class="btn btn-ghost" style="font-size:0.75rem" title="Re-detect step from GitHub" onclick="redetectStep('${track.id}')">⟳</button>` : ''}
           <button class="btn btn-ghost" style="font-size:0.75rem;${track.notes ? 'color:var(--amber)' : ''}" title="${track.notes ? 'Edit note' : 'Add note'}" onclick="openModal({type:'notes',trackId:'${track.id}'})">✎</button>
@@ -1040,7 +1042,7 @@ function renderStepBlock(track, step, actionLabel, showCIButton) {
         </div>
         <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
           <button class="btn btn-amber" onclick="doDone('${track.id}')">Reviewer responded →</button>
-          ${track.prUrl ? `<a href="${escHtml(track.prUrl)}" target="_blank" class="btn btn-ghost" style="font-size:0.78rem">↗ PR</a>` : ''}
+          ${track.prUrl ? `<a href="${escHtml(safeUrl(track.prUrl))}" target="_blank" class="btn btn-ghost" style="font-size:0.78rem">↗ PR</a>` : ''}
           ${showCIButton && !track.ciInterrupted ? `<button class="btn btn-ghost" style="font-size:0.75rem;color:var(--text-dim);margin-left:auto" onclick="doCIFailed('${track.id}')" title="Mark CI as failing">↯ CI</button>` : ''}
         </div>
       </div>
@@ -1129,7 +1131,7 @@ function renderDoneCard(track) {
         <span style="font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(track.title || 'Untitled')}</span>
       </div>
       <div style="display:flex;gap:0.25rem;flex-shrink:0;margin-left:0.5rem">
-        ${track.prUrl ? `<a href="${escHtml(track.prUrl)}" target="_blank" class="btn btn-ghost" style="font-size:0.75rem">↗</a>` : ''}
+        ${track.prUrl ? `<a href="${escHtml(safeUrl(track.prUrl))}" target="_blank" class="btn btn-ghost" style="font-size:0.75rem">↗</a>` : ''}
         <button class="btn btn-ghost" style="font-size:0.9rem;color:#4b1c1c" onclick="removeTrack('${track.id}')">×</button>
       </div>
     </div>
@@ -1139,6 +1141,13 @@ function renderDoneCard(track) {
 // ─────────────────────────────────────────────
 // HELPERS
 // ─────────────────────────────────────────────
+function safeUrl(url) {
+  try {
+    const u = new URL(url);
+    return (u.protocol === 'http:' || u.protocol === 'https:') ? url : '#';
+  } catch { return '#'; }
+}
+
 function escHtml(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -1200,7 +1209,7 @@ async function init() {
     console.error('Failed to load:', e);
   }
   render();
-  if (!cfg.githubToken) setTimeout(() => openModal({ type: 'settings' }), 300);
+  if (!cfg.hasToken) setTimeout(() => openModal({ type: 'settings' }), 300);
   else backfillDraftStatus();
 }
 
