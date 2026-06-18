@@ -1,6 +1,6 @@
 # ⚡ GrindRail
 
-A local web app for tracking pull requests through an AI-assisted review workflow. Hit the wrong rail and CI sends you back to the start.
+A local web app for tracking pull requests through an AI-assisted review workflow. Every PR, every step, every safeguard.
 
 Built for people who run multiple PRs at once and lose track of where each one is up to.
 
@@ -8,11 +8,11 @@ Built for people who run multiple PRs at once and lose track of where each one i
 
 ## The name
 
-In Ratchet & Clank, grind rails are the rails you jump onto and ride through a level. Pick the wrong one and you're sent back to the beginning.
+In Ratchet & Clank, grind rails carry you through a level. Pick the wrong one and you're back at the start. Stay on a looping rail and you never advance.
 
 ![Ratchet & Clank grind rail](docs/BataliaGrindRail.webp)
 
-That's CI. You're flying through the pipeline, take the wrong path, and suddenly you're back at step one. GrindRail keeps you on the right rail.
+GrindRail keeps you on the right one — tracking every PR you have in flight, the exact step each one is on, and every safeguard in place before you move on. With AI-generated PRs, it's easy to lose track of where each one is up to.
 
 ---
 
@@ -31,7 +31,7 @@ GrindRail gives each PR its own card and walks it through an 8-step workflow —
 8. Final Gate → 🚀 Merge
 ```
 
-CI can interrupt at any step. GrindRail tracks that too.
+The pipeline can send you back at any step — CI failures, security scan blocks, reviewer feedback loops. GrindRail tracks all of it.
 
 ![GrindRail app screenshot](docs/GrindRailScreenshot.png)
 
