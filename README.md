@@ -16,7 +16,7 @@ GrindRail gives each PR its own card and walks it through an 8-step workflow —
 3. Address Comments
 4. Update PR Description
 5. Evidence → Linear
-6. Request Senior Review   ← Aikido runs here
+6. Request Senior Review   ← security scan runs here
 7. Senior Feedback
 8. Final Gate → 🚀 Merge
 ```
