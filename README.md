@@ -6,6 +6,16 @@ Built for people who run multiple PRs at once and lose track of where each one i
 
 ---
 
+## The name
+
+In Ratchet & Clank, grind rails are the rails you jump onto and ride through a level. Pick the wrong one and you're sent back to the beginning.
+
+![Ratchet & Clank grind rail](docs/grindrail-ratchet.png)
+
+That's CI. You're flying through the pipeline, take the wrong path, and suddenly you're back at step one. GrindRail keeps you on the right rail.
+
+---
+
 ## What it does
 
 GrindRail gives each PR its own card and walks it through an 8-step workflow — from implementation through AI review, senior review, and merge. It connects to GitHub to detect which step a PR is actually on, checks CI status, and posts the four-angle review prompt directly to the PR.
@@ -15,7 +25,7 @@ GrindRail gives each PR its own card and walks it through an 8-step workflow —
 2. Trigger AI Review
 3. Address Comments
 4. Update PR Description
-5. Evidence → Linear
+5. Post Evidence
 6. Request Senior Review   ← security scan runs here
 7. Senior Feedback
 8. Final Gate → 🚀 Merge
@@ -23,15 +33,24 @@ GrindRail gives each PR its own card and walks it through an 8-step workflow —
 
 CI can interrupt at any step. GrindRail tracks that too.
 
+![GrindRail app screenshot](docs/screenshot.png)
+
+---
+
+## Prerequisites
+
+- Python 3
+- A GitHub org with CI checks (GitHub Actions, CircleCI, etc.)
+- A GitHub personal access token (classic, `repo` scope)
+- Optionally: an issue tracker (Linear, Shortcut, Jira — any URL works) and a workflow doc (Notion, Confluence, etc.)
+
 ---
 
 ## Setup
 
-**Requirements:** Python 3, a GitHub personal access token (classic, `repo` scope)
-
 ```bash
-git clone https://github.com/deskpro/qa-tools.git
-cd qa-tools
+git clone https://github.com/dane-h/grindrail.git
+cd grindrail
 ```
 
 Then either double-click `start.command` or:
@@ -44,8 +63,7 @@ Opens at `http://localhost:8767`.
 
 On first launch, open **Settings** (⚙) and enter:
 - **GitHub token** — classic PAT with `repo` scope
-- **Linear workspace** — the slug from `linear.app/{workspace}/...`
-- **Workflow doc URL** — optional link to your team's workflow doc (e.g. a Notion page), shown in the Flow modal
+- **Workflow doc URL** — optional link to your team's workflow doc, shown in the Flow modal
 
 ---
 
@@ -62,4 +80,3 @@ On first launch, open **Settings** (⚙) and enter:
 
 - `data/` is gitignored — your token and PR state stay local; see `config.example.json` for the expected shape
 - Designed to run locally, not deployed
-- Named after the grind rails in Ratchet & Clank. Pick the wrong one and you're back at the beginning.

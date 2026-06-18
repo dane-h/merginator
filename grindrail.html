@@ -187,7 +187,7 @@ const STEPS = [
   { id: 5, name: 'Post Evidence',           short: 'Evidence',    action: 'open_linear', doneLabel: 'Mark Done',
     desc: 'Open the Linear issue and paste the PR link as evidence.' },
   { id: 6, name: 'Request Senior Review',  short: 'Sr. Review',  action: 'open_pr',     doneLabel: 'Mark Done', branch: true,
-    desc: 'Assign the relevant senior engineer as a reviewer on GitHub. After requesting, wait ~2 min and check Aikido — it triggers on review request, not on push.' },
+    desc: 'Assign the relevant senior engineer as a reviewer on GitHub. After requesting, wait for your security scan to complete — it typically triggers on review request, not on push.' },
   { id: 7, name: 'Senior Feedback',        short: 'Sr. Feedback',action: 'input_copy',  doneLabel: '→ Final Gate', loopable: true,
     desc: 'Describe the feedback and Claude will address it. Can loop.' },
   { id: 8, name: 'Final Gate',             short: 'Final Gate',  action: 'copy',        doneLabel: '🚀 Merge',  isFinal: true,
@@ -568,7 +568,7 @@ function tplStep6Branch() {
     <h2>Senior Review Outcome</h2>
     <p class="sub">What did the reviewer do?</p>
     <div style="font-size:0.75rem;color:#fcd34d;background:#1c1500;border:1px solid #78350f;border-radius:0.5rem;padding:0.6rem 0.75rem;margin-bottom:1rem">
-      ⚠ Before continuing — did Aikido pass? It runs after review is requested, not on push.
+      ⚠ Before continuing — did your security scan pass? It typically runs after review is requested, not on push.
     </div>
     <div style="display:flex;flex-direction:column;gap:0.6rem">
       <button onclick="confirmStep6Branch(false)"
@@ -713,7 +713,7 @@ function tplFlow() {
 
   const ciTag = `<span style="font-size:0.68rem;color:#ef4444;white-space:nowrap">↯ CI can fail</span>`;
   const loopTag = `<span style="font-size:0.68rem;color:var(--amber);white-space:nowrap">↩ can loop</span>`;
-  const aikidoTag = `<span style="font-size:0.68rem;color:#fcd34d;white-space:nowrap">🛡 Aikido runs here</span>`;
+  const aikidoTag = `<span style="font-size:0.68rem;color:#fcd34d;white-space:nowrap">🛡 Security scan runs here</span>`;
 
   return `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem">
@@ -927,7 +927,7 @@ function render() {
       ${active.length === 0 && done.length === 0 ? renderEmpty() : ''}
 
       ${active.length > 0 ? `
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem;align-items:start">
           ${active.map(renderCard).join('')}
         </div>
       ` : ''}
@@ -935,7 +935,7 @@ function render() {
       ${done.length > 0 ? `
         <div style="margin-top:2rem">
           <div style="font-size:0.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.75rem">Complete</div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:0.6rem">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:0.6rem;align-items:start">
             ${done.map(renderDoneCard).join('')}
           </div>
         </div>
@@ -978,8 +978,8 @@ function renderCard(track) {
           <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.25rem;flex-wrap:wrap">
             ${track.prNumber ? `<span style="font-size:0.72rem;color:var(--muted);font-family:monospace">#${track.prNumber}</span>` : ''}
             ${track.issueUrl
-              ? `<a href="${escHtml(track.issueUrl)}" target="_blank" class="pill pill-amber" style="cursor:pointer;text-decoration:none" title="${escHtml(track.issueUrl)}">${escHtml((() => { try { return new URL(track.issueUrl).hostname.replace(/^www\./, ''); } catch(e) { return 'issue'; } })())}</a>`
-              : `<button class="btn btn-ghost" style="font-size:0.7rem;padding:0.1rem 0.4rem;color:var(--muted)" onclick="openModal({type:'linear_edit',trackId:'${track.id}'})">+ issue</button>`}
+              ? `<a href="${escHtml(track.issueUrl)}" target="_blank" class="pill pill-amber" style="cursor:pointer;text-decoration:none" title="${escHtml(track.issueUrl)}">Issue ↗</a>`
+              : `<button class="btn btn-ghost" style="font-size:0.7rem;padding:0.1rem 0.4rem;color:var(--text-dim);border:1px dashed #3a3a55" onclick="openModal({type:'linear_edit',trackId:'${track.id}'})">+ issue</button>`}
             ${track.isDraft ? `<span class="pill" style="background:#1e1a2e;border:1px solid #4c3f7a;color:#a78bfa">Draft</span>` : ''}
             ${isCI ? `<span class="pill pill-red">⚠ CI failing</span>` : ''}
             ${timeAtStep(track) ? `<span style="font-size:0.7rem;color:var(--text-dim)">· ${timeAtStep(track)}</span>` : ''}
@@ -1074,7 +1074,7 @@ const CHECKLIST = [
   { key: 'conversations', label: 'All conversations resolved on GitHub' },
   { key: 'commits',       label: 'All commits pushed to the branch' },
   { key: 'ci',            label: 'All CI checks passing' },
-  { key: 'aikido',        label: 'No unresolved Aikido issues' },
+  { key: 'aikido',        label: 'No unresolved security scan issues' },
   { key: 'approved',      label: 'Senior reviewer has approved' },
   { key: 'description',   label: 'PR description is accurate' },
 ];
