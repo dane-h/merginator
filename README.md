@@ -10,7 +10,7 @@ Built for people who run multiple PRs at once and lose track of where each one i
 
 In Ratchet & Clank, grind rails are the rails you jump onto and ride through a level. Pick the wrong one and you're sent back to the beginning.
 
-![Ratchet & Clank grind rail](docs/grindrail-ratchet.png)
+![Ratchet & Clank grind rail](docs/BataliaGrindRail.webp)
 
 That's CI. You're flying through the pipeline, take the wrong path, and suddenly you're back at step one. GrindRail keeps you on the right rail.
 
@@ -33,7 +33,7 @@ GrindRail gives each PR its own card and walks it through an 8-step workflow —
 
 CI can interrupt at any step. GrindRail tracks that too.
 
-![GrindRail app screenshot](docs/screenshot.png)
+![GrindRail app screenshot](docs/GrindRailScreenshot.png)
 
 ---
 
