@@ -8,6 +8,8 @@ A local web app for tracking pull requests through an AI-assisted review workflo
 
 In Ratchet & Clank, every weapon has a name that's one part function, one part absurdity. The Groovitron. The Sheepinator. The Merginator 3000 merges PRs. That's the whole pitch.
 
+![Ratchet & Clank grind rail](docs/BataliaMerginator.webp)
+
 ---
 
 ## What it does
