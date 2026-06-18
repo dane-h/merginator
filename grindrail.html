@@ -162,7 +162,7 @@ For each angle, report findings with severity, affected file and line, and a rec
 Begin your response with a one-sentence TL;DR stating whether there are any blocking findings or the PR is clear to proceed.`;
 
 const prompts = {
-  step1: (t) => `fix ${t.linearIssue || 'ISSUE_ID'}`,
+  step1: (t) => `fix ${t.issueUrl || 'ISSUE_URL'}`,
   step3: (t) => `${t.prUrl}\n\nRespond to each review comment on this pull request. For each comment, first determine whether it is valid — is it based in fact and evidence, not assumption? If it is valid, make the necessary code change and respond explaining what was fixed. If it is invalid, respond explaining why it is incorrect and provide concrete evidence. Never accept a review comment at face value — verify every claim before responding. Any valid comments must be addressed with a code change and a response explaining the fix. Any invalid comments must be addressed with a response explaining why the comment is incorrect, supported by concrete evidence.\n\nOnce all comments are addressed, verify that every reply accurately reflects the current state of the code. Flag any discrepancy where a reply claims a fix was made but the code does not match.
 
 Post your responses as a single comment on the PR. Open that comment with a brief TL;DR — one or two sentences — stating how many findings were valid, whether any code changes were made, and whether the PR is clear to proceed.`,
@@ -184,7 +184,7 @@ const STEPS = [
     desc: 'Address all review comments. Claude will also verify replies match the code.' },
   { id: 4, name: 'Update PR Description',  short: 'Update Desc', action: 'copy',        doneLabel: 'Mark Done',
     desc: 'Bring the PR description in line with any changes made since it was opened.' },
-  { id: 5, name: 'Evidence → Linear',      short: 'Linear',      action: 'open_linear', doneLabel: 'Mark Done',
+  { id: 5, name: 'Post Evidence',           short: 'Evidence',    action: 'open_linear', doneLabel: 'Mark Done',
     desc: 'Open the Linear issue and paste the PR link as evidence.' },
   { id: 6, name: 'Request Senior Review',  short: 'Sr. Review',  action: 'open_pr',     doneLabel: 'Mark Done', branch: true,
     desc: 'Assign the relevant senior engineer as a reviewer on GitHub. After requesting, wait ~2 min and check Aikido — it triggers on review request, not on push.' },
@@ -198,7 +198,7 @@ const STEPS = [
 // STATE
 // ─────────────────────────────────────────────
 let tracks = [];
-let cfg = { githubToken: '', linearWorkspace: '' };
+let cfg = { githubToken: '' };
 let modalState = null;
 
 // ─────────────────────────────────────────────
@@ -255,9 +255,8 @@ function toast(msg, err = false) {
   setTimeout(() => el.remove(), 2500);
 }
 
-function linearUrl(track) {
-  if (!track.linearIssue) return null;
-  return `https://linear.app/${cfg.linearWorkspace}/issue/${track.linearIssue}`;
+function issueUrl(track) {
+  return track.issueUrl || null;
 }
 
 // ─────────────────────────────────────────────
@@ -308,7 +307,7 @@ function doAction(id) {
       openModal({ type: 'confirm_post', trackId: id });
       break;
     case 'open_linear':
-      const lu = linearUrl(track);
+      const lu = issueUrl(track);
       if (lu) window.open(lu, '_blank');
       else openModal({ type: 'linear_edit', trackId: id });
       break;
@@ -494,8 +493,8 @@ function tplNewPR() {
         ${m.fetchErr ? `<div style="font-size:0.75rem;color:#f87171;margin-top:0.3rem">${escHtml(m.fetchErr)}</div>` : ''}
       </div>
       <div>
-        <label>Linear Issue <span style="color:var(--text-dim)">(optional)</span></label>
-        <input class="inp" id="new-pr-linear" placeholder="ENG-4821" value="${m.linearIssue || ''}" oninput="modalState.linearIssue=this.value">
+        <label>Issue URL <span style="color:var(--text-dim)">(optional)</span></label>
+        <input class="inp" id="new-pr-linear" placeholder="https://linear.app/..." value="${m.issueUrl || ''}" oninput="modalState.issueUrl=this.value">
       </div>
       <div>
         <label>Current Step</label>
@@ -521,12 +520,12 @@ function tplNewPR() {
 function tplNewIssue() {
   const m = modalState;
   return `
-    <h2>New Track — Linear Issue</h2>
+    <h2>New Track — Issue</h2>
     <p class="sub"></p>
     <div style="display:flex;flex-direction:column;gap:1rem">
       <div>
-        <label>Linear Issue ID</label>
-        <input class="inp" id="new-issue-input" placeholder="ENG-4821" value="${m.issue || ''}" oninput="modalState.issue=this.value;document.getElementById('add-issue-btn').disabled=!this.value">
+        <label>Issue URL</label>
+        <input class="inp" id="new-issue-input" placeholder="https://linear.app/..." value="${m.issue || ''}" oninput="modalState.issue=this.value;document.getElementById('add-issue-btn').disabled=!this.value">
       </div>
       <div>
         <label>Short description <span style="color:var(--text-dim)">(optional)</span></label>
@@ -638,12 +637,6 @@ function tplSettings() {
         <div style="font-size:0.72rem;color:var(--text-dim);margin-top:0.3rem">Needs <code>repo</code> scope. Used to post review comments and fetch PR details.</div>
       </div>
       <div>
-        <label>Linear Workspace</label>
-        <input class="inp" placeholder="your-workspace" value="${cfg.linearWorkspace || ''}"
-          oninput="cfg.linearWorkspace=this.value">
-        <div style="font-size:0.72rem;color:var(--text-dim);margin-top:0.3rem">Your workspace slug from linear.app/{workspace}/...</div>
-      </div>
-      <div>
         <label>Workflow Doc URL</label>
         <input class="inp" placeholder="https://notion.so/..." value="${cfg.workflowDocUrl || ''}"
           oninput="cfg.workflowDocUrl=this.value">
@@ -682,10 +675,10 @@ function saveNote(id) {
 function tplLinearEdit() {
   const track = tracks.find(t => t.id === modalState.trackId);
   return `
-    <h2>Linear Issue</h2>
+    <h2>Issue URL</h2>
     <p class="sub">${escHtml(track?.title || '')}</p>
-    <input class="inp" id="linear-edit-input" placeholder="ENG-4821"
-      value="${escHtml(track?.linearIssue || '')}"
+    <input class="inp" id="linear-edit-input" placeholder="https://linear.app/..."
+      value="${escHtml(track?.issueUrl || '')}"
       style="margin-bottom:1rem"
       onkeydown="if(event.key==='Enter')saveLinearIssue('${modalState.trackId}')">
     <div style="display:flex;justify-content:flex-end;gap:0.5rem">
@@ -697,9 +690,9 @@ function tplLinearEdit() {
 
 function saveLinearIssue(id) {
   const val = document.getElementById('linear-edit-input')?.value.trim() || '';
-  updateTrack(id, { linearIssue: val || null });
+  updateTrack(id, { issueUrl: val || null });
   closeModal();
-  toast(val ? `Linear issue set to ${val}` : 'Linear issue cleared');
+  toast(val ? 'Issue URL saved' : 'Issue URL cleared');
 }
 
 function tplFlow() {
@@ -745,7 +738,7 @@ function tplFlow() {
         ${arrow()}
         ${step(4, 'Update PR Description')}
         ${arrow()}
-        ${step(5, 'Evidence → Linear')}
+        ${step(5, 'Post Evidence')}
         ${arrow()}
         ${step(6, 'Request Senior Review', aikidoTag)}
 
@@ -786,7 +779,7 @@ function tplFlow() {
 function tplRemoveConfirm() {
   const m = modalState;
   const t = tracks.find(t => t.id === m.trackId);
-  const label = t ? (t.prNumber ? `#${t.prNumber}` : t.linearIssue || 'this track') : 'this track';
+  const label = t ? (t.prNumber ? `#${t.prNumber}` : t.issueUrl || 'this track') : 'this track';
   return `
     <h2>Remove Track?</h2>
     <p class="sub">${escHtml(label)} will be removed from GrindRail. The PR itself is not affected.</p>
@@ -837,7 +830,7 @@ function confirmAddPR() {
     prNumber: modalState.prNumber || null,
     repo: modalState.repo || null,
     title: modalState.title || modalState.prUrl,
-    linearIssue: modalState.linearIssue || null,
+    issueUrl: modalState.issueUrl || null,
     currentStep: modalState.step || 2,
     ciInterrupted: false,
     isDraft: modalState.isDraft || false,
@@ -849,7 +842,7 @@ function confirmAddIssue() {
   if (!modalState.issue) return;
   addTrack({
     type: 'issue',
-    linearIssue: modalState.issue,
+    issueUrl: modalState.issue,
     title: modalState.title || modalState.issue,
     currentStep: 1,
     ciInterrupted: false,
@@ -969,7 +962,7 @@ function renderCard(track) {
 
   const actionLabel =
     step.action === 'post_github' ? '▶ Post Review Comment' :
-    step.action === 'open_linear' ? '↗ Open Linear Issue' :
+    step.action === 'open_linear' ? '↗ Open Issue' :
     step.action === 'open_pr'     ? '↗ Open PR on GitHub' :
     step.action === 'input_copy'  ? '📋 Copy Prompt' :
     '📋 Copy Prompt';
@@ -984,8 +977,8 @@ function renderCard(track) {
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.25rem;flex-wrap:wrap">
             ${track.prNumber ? `<span style="font-size:0.72rem;color:var(--muted);font-family:monospace">#${track.prNumber}</span>` : ''}
-            ${track.linearIssue
-              ? `<span class="pill pill-amber" style="cursor:pointer" title="Edit Linear issue" onclick="openModal({type:'linear_edit',trackId:'${track.id}'})">${escHtml(track.linearIssue)}</span>`
+            ${track.issueUrl
+              ? `<a href="${escHtml(track.issueUrl)}" target="_blank" class="pill pill-amber" style="cursor:pointer;text-decoration:none" title="${escHtml(track.issueUrl)}">${escHtml((() => { try { return new URL(track.issueUrl).hostname.replace(/^www\./, ''); } catch(e) { return 'issue'; } })())}</a>`
               : `<button class="btn btn-ghost" style="font-size:0.7rem;padding:0.1rem 0.4rem;color:var(--muted)" onclick="openModal({type:'linear_edit',trackId:'${track.id}'})">+ issue</button>`}
             ${track.isDraft ? `<span class="pill" style="background:#1e1a2e;border:1px solid #4c3f7a;color:#a78bfa">Draft</span>` : ''}
             ${isCI ? `<span class="pill pill-red">⚠ CI failing</span>` : ''}
