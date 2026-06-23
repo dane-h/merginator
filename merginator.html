@@ -441,6 +441,7 @@ function renderModalContent() {
     case 'notes':            return tplNotes();
     case 'flow':             return tplFlow();
     case 'linear_edit':      return tplLinearEdit();
+    case 'edit_title':       return tplEditTitle();
     default: return '';
   }
 }
@@ -691,6 +692,30 @@ function saveLinearIssue(id) {
   updateTrack(id, { issueUrl: val || null });
   closeModal();
   toast(val ? 'Issue URL saved' : 'Issue URL cleared');
+}
+
+function tplEditTitle() {
+  const track = tracks.find(t => t.id === modalState.trackId);
+  return `
+    <h2>Edit Title</h2>
+    <p class="sub">#${track?.prNumber || track?.id}</p>
+    <input class="inp" id="edit-title-input" placeholder="Short description…"
+      value="${escHtml(track?.title || '')}"
+      style="margin-bottom:1rem"
+      onkeydown="if(event.key==='Enter')saveEditTitle('${modalState.trackId}')">
+    <div style="display:flex;justify-content:flex-end;gap:0.5rem">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-amber" onclick="saveEditTitle('${modalState.trackId}')">Save</button>
+    </div>
+  `;
+}
+
+function saveEditTitle(id) {
+  const val = document.getElementById('edit-title-input')?.value.trim() || '';
+  if (!val) return;
+  updateTrack(id, { title: val });
+  closeModal();
+  toast('Title updated');
 }
 
 function tplFlow() {
@@ -994,6 +1019,7 @@ function renderCard(track) {
           ${track.prUrl && track.title === track.prUrl ? `<button class="btn btn-ghost" style="font-size:0.75rem" title="Fetch PR title" onclick="refetchTitle('${track.id}')">↻</button>` : ''}
           ${track.prUrl && track.currentStep > 1 ? `<button class="btn btn-ghost" style="font-size:0.75rem" title="Re-detect step from GitHub" onclick="redetectStep('${track.id}')">⟳</button>` : ''}
           <button class="btn btn-ghost" style="font-size:0.75rem;${track.notes ? 'color:var(--amber)' : ''}" title="${track.notes ? 'Edit note' : 'Add note'}" onclick="openModal({type:'notes',trackId:'${track.id}'})">✎</button>
+          <button class="btn btn-ghost" style="font-size:0.75rem" title="Edit title" onclick="openModal({type:'edit_title',trackId:'${track.id}'})">𝐓</button>
           <button class="btn btn-ghost" style="font-size:0.9rem;color:#4b1c1c" onclick="openModal({type:'remove_confirm',trackId:'${track.id}'})">×</button>
         </div>
       </div>
