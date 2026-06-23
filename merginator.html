@@ -194,7 +194,7 @@ const STEPS = [
   { id: 9,  name: 'Senior Feedback',         short: 'Sr. Feedback', action: 'input_copy',  doneLabel: '→ Tester Review', loopable: true,
     desc: 'Describe the feedback and Claude will address it. Can loop.' },
   { id: 10, name: 'Tester Review',            short: 'Test Review',  action: 'tester_check',doneLabel: 'Mark Done',
-    desc: 'Check whether [Product] Test Reviewers have been auto-assigned. If so, wait for their approval before proceeding.' },
+    desc: 'Check whether [Product] Test Reviewers have been auto-assigned to this PR.' },
   { id: 11, name: 'Final Gate',              short: 'Final Gate',   action: 'gate',        doneLabel: '🚀 Merge',  isFinal: true,
     desc: 'Automated check: conversations resolved and CI passing.' },
 ];
@@ -229,7 +229,6 @@ const api = {
   comment(url, body) { return this.post('/api/github/comment', { url, body }); },
   ciStatus(url)      { return this.get(`/api/github/ci?url=${encodeURIComponent(url)}`); },
   gateCheck(url)        { return this.get(`/api/github/gate?url=${encodeURIComponent(url)}`); },
-  testerReview(url)     { return this.get(`/api/github/tester-review?url=${encodeURIComponent(url)}`); },
 };
 
 // ─────────────────────────────────────────────
@@ -868,7 +867,7 @@ function tplFlow() {
           </div>
         </div>
 
-        ${step(10, 'Tester Review', `<span style="font-size:0.68rem;color:#fcd34d;white-space:nowrap">🛡 auto-checks if needed</span>`)}
+        ${step(10, 'Tester Review', '')}
         ${arrow()}
         ${step(11, 'Final Gate')}
         ${arrow()}
@@ -983,7 +982,7 @@ async function confirmEnterPR() {
 function confirmStep6Branch(hasComments) {
   const trackId = modalState.trackId;
   closeModal();
-  updateTrack(trackId, { currentStep: hasComments ? 9 : 10, testerCheck: null });
+  updateTrack(trackId, { currentStep: hasComments ? 9 : 10, testerAwaiting: false });
 }
 
 function confirmStep7() {
@@ -1137,7 +1136,8 @@ function renderStepBlock(track, step, actionLabel, showCIButton) {
   const isStep8  = track.currentStep === 8;
   const isStep10 = track.currentStep === 10;
   const isStep11 = track.currentStep === 11;
-  const step6Waiting = isStep8 && track.step6Requested;
+  const step6Waiting  = isStep8  && track.step6Requested;
+  const testerWaiting = isStep10 && track.testerAwaiting;
 
   const header = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.2rem">
@@ -1166,11 +1166,27 @@ function renderStepBlock(track, step, actionLabel, showCIButton) {
     `;
   }
 
+  if (testerWaiting) {
+    return `
+      <div>
+        ${header}
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.9rem">
+          <span style="font-size:0.82rem;color:#fcd34d">⏳ Awaiting tester review…</span>
+        </div>
+        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-amber" onclick="openModal({type:'tester_branch',trackId:'${track.id}'})">Tester responded →</button>
+          ${track.prUrl ? `<a href="${escHtml(safeUrl(track.prUrl))}" target="_blank" class="btn btn-ghost" style="font-size:0.78rem">↗ PR</a>` : ''}
+          ${(track.testerLoops || 0) > 0 ? `<button class="btn btn-ghost" style="font-size:0.78rem" onclick="doTesterLoop('${track.id}')">+ More Feedback</button>` : ''}
+          <button class="btn btn-ghost" style="font-size:0.72rem" onclick="updateTrack('${track.id}',{testerAwaiting:false})">↩ Back</button>
+        </div>
+      </div>
+    `;
+  }
+
   if (isStep10) {
     return `
       <div>
         ${header}
-        <div class="step-desc" style="margin-bottom:0.9rem">${step.desc}</div>
         ${renderTesterCheck(track)}
       </div>
     `;
@@ -1230,17 +1246,6 @@ function doMerge(id) {
   doDone(id);
 }
 
-async function doTesterCheck(id) {
-  const track = tracks.find(t => t.id === id);
-  if (!track?.prUrl) return toast('No PR URL on this track', true);
-  updateTrack(id, { testerCheck: { loading: true } });
-  const result = await api.testerReview(track.prUrl);
-  if (result.error) {
-    updateTrack(id, { testerCheck: null });
-    return toast(result.error, true);
-  }
-  updateTrack(id, { testerCheck: { needed: result.needed } });
-}
 
 function doTesterLoop(id) {
   const track = tracks.find(t => t.id === id);
@@ -1305,45 +1310,12 @@ function renderStep8Gate(track) {
 }
 
 function renderTesterCheck(track) {
-  const c = track.testerCheck;
-
-  if (!c) {
-    return `
-      <div style="background:#0f0f1a;border:1px solid #1e1e30;border-radius:0.6rem;padding:0.65rem 0.75rem;margin-bottom:0.9rem">
-        <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.5rem">Check whether [Product] Test Reviewers were auto-assigned to this PR.</div>
-        <button class="btn btn-amber" onclick="doTesterCheck('${track.id}')">Run Check</button>
-      </div>
-    `;
-  }
-
-  if (c.loading) {
-    return `
-      <div style="background:#0f0f1a;border:1px solid #1e1e30;border-radius:0.6rem;padding:0.65rem 0.75rem;margin-bottom:0.9rem">
-        <div style="font-size:0.78rem;color:var(--muted)">Checking…</div>
-      </div>
-    `;
-  }
-
-  if (!c.needed) {
-    return `
-      <div style="background:#051a0e;border:1px solid #166534;border-radius:0.6rem;padding:0.65rem 0.75rem;margin-bottom:0.9rem">
-        <div style="font-size:0.78rem;color:#86efac;margin-bottom:0.5rem">✓ [Product] Test Reviewers not assigned — no tester review required.</div>
-        <div style="display:flex;gap:0.4rem;align-items:center">
-          <button class="btn btn-green" onclick="updateTrack('${track.id}',{currentStep:11})">→ Final Gate</button>
-          <button class="btn btn-ghost" style="font-size:0.75rem" onclick="doTesterCheck('${track.id}')">↻ Re-check</button>
-        </div>
-      </div>
-    `;
-  }
-
   return `
     <div style="background:#0f0f1a;border:1px solid #1e1e30;border-radius:0.6rem;padding:0.65rem 0.75rem;margin-bottom:0.9rem">
-      <div style="font-size:0.78rem;color:#fcd34d;margin-bottom:0.6rem">🛡 [Product] Test Reviewers are assigned — awaiting their approval.</div>
+      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:0.7rem">Have [Product] Test Reviewers been auto-assigned to this PR?</div>
       <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
-        <button class="btn btn-amber" onclick="openModal({type:'tester_branch',trackId:'${track.id}'})">Tester responded →</button>
-        ${track.prUrl ? `<a href="${escHtml(safeUrl(track.prUrl))}" target="_blank" class="btn btn-ghost" style="font-size:0.78rem">↗ PR</a>` : ''}
-        <button class="btn btn-ghost" style="font-size:0.75rem" onclick="doTesterCheck('${track.id}')">↻ Re-check</button>
-        ${(track.testerLoops || 0) > 0 ? `<button class="btn btn-ghost" style="font-size:0.78rem" onclick="doTesterLoop('${track.id}')">+ More Feedback</button>` : ''}
+        <button class="btn btn-amber" onclick="updateTrack('${track.id}',{testerAwaiting:true})">Yes — awaiting review</button>
+        <button class="btn btn-ghost" onclick="updateTrack('${track.id}',{currentStep:11})">No — skip</button>
       </div>
     </div>
   `;

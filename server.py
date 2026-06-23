@@ -105,8 +105,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._ci_status(params)
         elif path == '/api/github/gate':
             self._gate_check(params)
-        elif path == '/api/github/tester-review':
-            self._tester_review_check(params)
         else:
             self._json({'error': 'Not found'}, 404)
 
@@ -294,21 +292,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
             conversations = {'resolved': unresolved == 0, 'unresolved': unresolved}
 
         self._json({'ci': ci, 'conversations': conversations})
-
-    def _tester_review_check(self, params):
-        url = params.get('url', [''])[0]
-        if not url:
-            return self._json({'error': 'No URL'}, 400)
-        try:
-            owner, repo, number = parse_pr_url(url)
-        except ValueError as e:
-            return self._json({'error': str(e)}, 400)
-        token = json.loads(CONFIG_FILE.read_text()).get('githubToken', '')
-        pr = github(f'/repos/{owner}/{repo}/pulls/{number}', token)
-        if '_err' in pr:
-            return self._json({'error': pr['_msg']}, 400)
-        teams = [t.get('name', '') for t in pr.get('requested_teams', [])]
-        self._json({'needed': '[Product] Test Reviewers' in teams})
 
     def _post_comment(self, body):
         url = body.get('url', '')
