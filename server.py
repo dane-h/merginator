@@ -252,6 +252,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
         pr = github(f'/repos/{owner}/{repo}/pulls/{number}', token)
         if '_err' in pr:
             return self._json({'error': pr['_msg']}, 400)
+
+        if pr.get('merged'):
+            return self._json({
+                'merged': True,
+                'ci': {'status': 'passing', 'summary': 'PR already merged'},
+                'conversations': {'resolved': True, 'unresolved': 0},
+            })
+
         sha = pr.get('head', {}).get('sha', '')
         ci = {'status': 'unknown', 'summary': 'Could not fetch CI status'}
         if sha:

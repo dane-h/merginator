@@ -1231,6 +1231,7 @@ async function doGateCheck(id) {
   }
   updateTrack(id, {
     step8Gate: {
+      merged: result.merged || false,
       conversations: result.conversations.resolved,
       unresolvedCount: result.conversations.unresolved,
       ci: result.ci.status,
@@ -1278,6 +1279,21 @@ function renderStep8Gate(track) {
     return `
       <div style="background:#0f0f1a;border:1px solid #1e1e30;border-radius:0.6rem;padding:0.65rem 0.75rem;margin-bottom:0.9rem">
         <div style="font-size:0.78rem;color:var(--muted)">Checking…</div>
+      </div>
+    `;
+  }
+
+  if (g.merged) {
+    return `
+      <div style="background:#0f0f1a;border:1px solid #1e1e30;border-radius:0.6rem;padding:0.65rem 0.75rem;margin-bottom:0.9rem">
+        <div style="display:flex;align-items:center;gap:0.5rem;padding:0.2rem 0">
+          <span style="font-size:0.85rem;color:#a78bfa;flex-shrink:0">✓</span>
+          <span style="font-size:0.78rem;color:var(--text)">PR already merged by someone else</span>
+        </div>
+        <div style="display:flex;gap:0.4rem;margin-top:0.5rem;align-items:center">
+          <button class="btn btn-ghost" style="font-size:0.75rem" onclick="doGateCheck('${track.id}')">↻ Re-check</button>
+          <button class="btn btn-green" onclick="doDone('${track.id}')">Mark Done</button>
+        </div>
       </div>
     `;
   }
