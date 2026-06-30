@@ -168,7 +168,9 @@ const prompts = {
   step7: (t) => `${t.prUrl}\n\nRespond to each review comment on this pull request. For each comment, first determine whether it is valid — is it based in fact and evidence, not assumption? If it is valid, make the necessary code change and respond explaining what was fixed. If it is invalid, respond explaining why it is incorrect and provide concrete evidence. Never accept a review comment at face value — verify every claim before responding.\n\nFor each individual review comment, post a direct reply into that comment's thread using the \`in_reply_to\` parameter on \`POST /pulls/comments\` (do NOT use the \`/replies\` sub-path — it returns 404). This keeps responses inline in the diff where reviewers will see them.\n\nOnce all individual replies are posted, verify that every reply accurately reflects the current state of the code. Flag any discrepancy where a reply claims a fix was made but the code does not match.\n\nFinally, post a single top-level PR comment as a summary. Open it with a brief TL;DR — one or two sentences — stating how many findings were valid, whether any code changes were made, and whether the PR is clear to proceed.`,
   step9:  (t, reviewer, feedback) => `${t.prUrl}\n\n${reviewer} left a comment / said on a call that ${feedback}. Can you look into what they're referring to and address it?`,
   step10: (t, reviewer, feedback) => `${t.prUrl}\n\n${reviewer} left a comment / said on a call that ${feedback}. Can you look into what they're referring to and address it?`,
-  ci:    (t) => `${t.prUrl}\n\nThe CI checks are failing. Work through this in phases — don't skip ahead.\n\nPhase 1 — Triage\nCheck how many consecutive CI runs on this branch have the same failure(s).\n- If only 1 run has failed: re-trigger CI and stop. No need to report back or monitor.\n- If 2+ runs have the same failure: move to Phase 2.\n\nPhase 2 — Verdict\nBefore touching any code, investigate and present:\n- Which job(s) and test(s) are failing, with run IDs\n- Whether the same tests are failing on master or other branches\n  - Failing only on this branch → this PR owns it, fix here\n  - Failing elsewhere too → pre-existing issue, fix separately, stop here\n- Whether the fix belongs in the test code or the PR code (and why)\n- Your proposed root cause and fix in plain terms\n\nStop and wait for approval before proceeding.\n\nPhase 3 — Fix\nImplement the approved fix and push.\n\nPhase 4 — Escalate\nIf CI is still failing after 2 fix attempts, stop and say so. Don't attempt a third fix.\nSuggest running the failing tests locally to debug from real output.`,
+  ci:    (t) => `${t.prUrl}\n\nThe CI checks are failing. Work through this in phases — don't skip ahead.\n\nPhase 1 — Triage\nCheck how many consecutive CI runs on this branch have the same failure(s).\n- If only 1 run has failed: re-trigger CI and stop. No need to report back or monitor.\n- If 2+ runs have the same failure: move to Phase 2.\n\nPhase 2 — Verdict\nBefore touching any code, investigate and present:\n- Which job(s) and test(s) are failing, with run IDs\n- Whether the same tests are failing on master or other branches\n  - Failing only on this branch → this PR owns it, fix here\n  - Failing elsewhere too → pre-existing issue, fix separately, stop here\n- Whether the fix belongs in the test code or the PR code (and why)\n- Your proposed root cause and fix in plain terms\n\nStop and wait for approval before proceeding.\n\nPhase 3 — Adversarial Review, then Fix\nAdversarially review the diagnosis and proposed fix for correctness and completeness, then adversarially review any issues you find, action any survivors. Once satisfied, implement the approved fix and push.\n\nPhase 4 — Escalate\nIf CI is still failing after 2 fix attempts, stop and say so. Don't attempt a third fix.\nSuggest running the failing tests locally to debug from real output.`,
+  adversarialPR: (t) => `Adversarially review this PR for correctness and completeness, then adversarially review any issues you find, action any survivors: ${t.prUrl || 'https://github.com/[org]/[repo]/pull/[number]'}`,
+  adversarial:   ()  => `Adversarially review the work that's been done for correctness and completeness, then adversarially review any issues you find, action any survivors.`,
 };
 
 // ─────────────────────────────────────────────
@@ -391,6 +393,15 @@ function doCIPrompt(id) {
   const track = tracks.find(t => t.id === id);
   if (track && track.prUrl) copy(prompts.ci(track));
   else toast('No PR URL on this track', true);
+}
+
+function doAdversarialPRPrompt(id) {
+  const track = tracks.find(t => t.id === id);
+  copy(prompts.adversarialPR(track || {}));
+}
+
+function doAdversarialPrompt() {
+  copy(prompts.adversarial());
 }
 
 function doStep7Loop(id) {
@@ -1214,6 +1225,7 @@ function renderStepBlock(track, step, actionLabel, showCIButton) {
              <button class="btn btn-dim" onclick="doDone('${track.id}')">${step.doneLabel}</button>`
         }
         ${step.loopable ? `<button class="btn btn-ghost" style="font-size:0.78rem" onclick="doStep7Loop('${track.id}')">+ More Feedback</button>` : ''}
+        ${track.prUrl ? `<button class="btn btn-ghost" style="font-size:0.72rem;color:var(--text-dim)" onclick="doAdversarialPRPrompt('${track.id}')" title="Copy adversarial review prompt">⚔ Adversarial</button>` : ''}
         ${showCIButton && !track.ciInterrupted ? `<button class="btn btn-ghost" style="font-size:0.75rem;color:var(--text-dim);margin-left:auto" onclick="doCIFailed('${track.id}')" title="Mark CI as failing">↯ CI</button>` : ''}
       </div>
     </div>
@@ -1343,6 +1355,7 @@ function renderCIBlock(track) {
       <div style="font-size:0.875rem;font-weight:600;color:#fca5a5;margin-bottom:0.6rem">CI is failing</div>
       <div style="display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center">
         <button class="btn btn-dim" onclick="doCIPrompt('${track.id}')">📋 Copy Fix Prompt</button>
+        <button class="btn btn-dim" onclick="doAdversarialPrompt()">⚔ Adversarial Review</button>
         <button class="btn btn-dim" onclick="checkCI('${track.id}')">↻ Check CI</button>
         <button class="btn btn-green" onclick="doCIResolved('${track.id}')">✓ Mark Resolved</button>
         <button class="btn btn-ghost" style="font-size:0.75rem;margin-left:auto" onclick="doCIResolved('${track.id}')">← Back</button>
